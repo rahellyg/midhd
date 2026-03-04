@@ -1,0 +1,79 @@
+{
+    "name": "Task",
+    "type": "object",
+    "properties": {
+      "title": {
+        "type": "string",
+        "description": "\u05db\u05d5\u05ea\u05e8\u05ea \u05d4\u05de\u05e9\u05d9\u05de\u05d4"
+      },
+      "description": {
+        "type": "string",
+        "description": "\u05ea\u05d9\u05d0\u05d5\u05e8 \u05d4\u05de\u05e9\u05d9\u05de\u05d4"
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "todo",
+          "in_progress",
+          "done"
+        ],
+        "default": "todo"
+      },
+      "priority": {
+        "type": "string",
+        "enum": [
+          "low",
+          "medium",
+          "high"
+        ],
+        "default": "medium"
+      },
+      "energy_level": {
+        "type": "string",
+        "enum": [
+          "low",
+          "medium",
+          "high"
+        ],
+        "default": "medium",
+        "description": "\u05e8\u05de\u05ea \u05d0\u05e0\u05e8\u05d2\u05d9\u05d4 \u05e0\u05d3\u05e8\u05e9\u05ea"
+      },
+      "estimated_minutes": {
+        "type": "number",
+        "default": 25,
+        "description": "\u05d6\u05de\u05df \u05de\u05e9\u05d5\u05e2\u05e8 \u05d1\u05d3\u05e7\u05d5\u05ea"
+      },
+      "steps": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string"
+            },
+            "done": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        },
+        "description": "\u05e6\u05e2\u05d3\u05d9\u05dd \u05e7\u05d8\u05e0\u05d9\u05dd"
+      },
+      "scheduled_date": {
+        "type": "string",
+        "format": "date"
+      },
+      "completed_at": {
+        "type": "string"
+      },
+      "tags": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": [
+      "title"
+    ]
+  }

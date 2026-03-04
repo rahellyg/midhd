@@ -1,0 +1,38 @@
+{
+  "name": "UserProfile",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string"
+    },
+    "daily_task_goal": {
+      "type": "number",
+      "default": 3
+    },
+    "daily_focus_goal_minutes": {
+      "type": "number",
+      "default": 50
+    },
+    "streak_days": {
+      "type": "number",
+      "default": 0
+    },
+    "last_active_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "longest_streak": {
+      "type": "number",
+      "default": 0
+    },
+    "total_tasks_done": {
+      "type": "number",
+      "default": 0
+    },
+    "total_focus_minutes": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": []
+}
