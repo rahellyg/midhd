@@ -1,9 +1,9 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { api, getAppPublicSettings, isApiConfigured } from '@/api/apiClient';
 import { appParams } from '@/lib/app-params';
-import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
 
 const AuthContext = createContext();
+const hasValidAppId = (value) => Boolean(value && value !== 'null' && value !== 'undefined');
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -12,6 +12,7 @@ export const AuthProvider = ({ children }) => {
   const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(true);
   const [authError, setAuthError] = useState(null);
   const [appPublicSettings, setAppPublicSettings] = useState(null); // Contains only { id, public_settings }
+  const [isSigningIn, setIsSigningIn] = useState(false);
 
   useEffect(() => {
     checkAppState();
@@ -21,20 +22,21 @@ export const AuthProvider = ({ children }) => {
     try {
       setIsLoadingPublicSettings(true);
       setAuthError(null);
+
+      if (!hasValidAppId(appParams.appId)) {
+        setAppPublicSettings({
+          id: 'local',
+          public_settings: { mode: 'local' }
+        });
+        await checkUserAuth();
+        setIsLoadingPublicSettings(false);
+        return;
+      }
       
       // First, check app public settings (with token if available)
       // This will tell us if auth is required, user not registered, etc.
-      const appClient = createAxiosClient({
-        baseURL: `/api/apps/public`,
-        headers: {
-          'X-App-Id': appParams.appId
-        },
-        token: appParams.token, // Include token if available
-        interceptResponses: true
-      });
-      
       try {
-        const publicSettings = await appClient.get(`/prod/public-settings/by-id/${appParams.appId}`);
+        const publicSettings = await getAppPublicSettings(appParams.appId);
         setAppPublicSettings(publicSettings);
         
         // If we got the app public settings successfully, check if user is authenticated
@@ -91,22 +93,78 @@ export const AuthProvider = ({ children }) => {
     try {
       // Now check if the user is authenticated
       setIsLoadingAuth(true);
-      const currentUser = await base44.auth.me();
+      const currentUser = await api.auth.me();
       setUser(currentUser);
       setIsAuthenticated(true);
+      setAuthError(null);
       setIsLoadingAuth(false);
     } catch (error) {
-      console.error('User auth check failed:', error);
+      const isExpectedUnauthenticated = error?.status === 401;
+      if (!isExpectedUnauthenticated) {
+        console.error('User auth check failed:', error);
+      }
       setIsLoadingAuth(false);
+      setUser(null);
       setIsAuthenticated(false);
       
       // If user auth fails, it might be an expired token
-      if (error.status === 401 || error.status === 403) {
+      if (isApiConfigured && (error.status === 401 || error.status === 403)) {
         setAuthError({
           type: 'auth_required',
           message: 'Authentication required'
         });
       }
+    }
+  };
+
+  const signInWithEmail = async ({ email, fullName, birthDate, password, mode }) => {
+    setIsSigningIn(true);
+    try {
+      const currentUser = await api.auth.signInWithEmail({
+        email,
+        fullName,
+        birthDate,
+        password,
+        mode,
+      });
+      if (currentUser) {
+        setUser(currentUser);
+        setIsAuthenticated(true);
+      }
+      setAuthError(null);
+      return currentUser;
+    } finally {
+      setIsSigningIn(false);
+    }
+  };
+
+  const signInWithGoogle = async () => {
+    setIsSigningIn(true);
+    try {
+      const currentUser = await api.auth.signInWithGoogle();
+      if (currentUser) {
+        setUser(currentUser);
+        setIsAuthenticated(true);
+      }
+      setAuthError(null);
+      return currentUser;
+    } finally {
+      setIsSigningIn(false);
+    }
+  };
+
+  const signInWithGoogleCredential = async (credentialToken) => {
+    setIsSigningIn(true);
+    try {
+      const currentUser = await api.auth.signInWithGoogleCredential(credentialToken);
+      if (currentUser) {
+        setUser(currentUser);
+        setIsAuthenticated(true);
+      }
+      setAuthError(null);
+      return currentUser;
+    } finally {
+      setIsSigningIn(false);
     }
   };
 
@@ -116,16 +174,16 @@ export const AuthProvider = ({ children }) => {
     
     if (shouldRedirect) {
       // Use the SDK's logout method which handles token cleanup and redirect
-      base44.auth.logout(window.location.href);
+      api.auth.logout(window.location.href);
     } else {
       // Just remove the token without redirect
-      base44.auth.logout();
+      api.auth.logout();
     }
   };
 
   const navigateToLogin = () => {
     // Use the SDK's redirectToLogin method
-    base44.auth.redirectToLogin(window.location.href);
+    api.auth.redirectToLogin(window.location.href);
   };
 
   return (
@@ -137,6 +195,10 @@ export const AuthProvider = ({ children }) => {
       authError,
       appPublicSettings,
       logout,
+      isSigningIn,
+      signInWithEmail,
+      signInWithGoogle,
+      signInWithGoogleCredential,
       navigateToLogin,
       checkAppState
     }}>

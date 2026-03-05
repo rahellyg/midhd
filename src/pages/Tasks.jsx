@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { api } from "@/api/apiClient";
 import { Plus, Filter } from "lucide-react";
 import TaskCard from "../components/tasks/TaskCard";
 import AddTaskModal from "../components/tasks/AddTaskModal";
@@ -28,7 +28,7 @@ export default function Tasks() {
 
   const load = async () => {
     setLoading(true);
-    const data = await base44.entities.Task.list("-created_date", 100);
+    const data = await api.entities.Task.list("-created_date", 100);
     setTasks(data);
     setLoading(false);
   };

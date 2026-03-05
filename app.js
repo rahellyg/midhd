@@ -2,18 +2,18 @@
   'use strict';
 
   const STORAGE_KEYS = {
-    userName: 'focusnest_user_name',
-    tasks: 'focusnest_tasks',
-    points: 'focusnest_points',
-    tasksCompleted: 'focusnest_tasks_completed',
-    sprintsFinished: 'focusnest_sprints_finished',
-    brainDump: 'focusnest_brain_dump',
-    sprintMinutes: 'focusnest_sprint_minutes',
-    lastActiveDate: 'focusnest_last_active_date',
-    streakCount: 'focusnest_streak_count',
-    dailyGoalTasks: 'focusnest_daily_goal_tasks',
-    dailyGoalMinutes: 'focusnest_daily_goal_minutes',
-    dailyStats: 'focusnest_daily_stats',
+    userName: 'midhd_user_name',
+    tasks: 'midhd_tasks',
+    points: 'midhd_points',
+    tasksCompleted: 'midhd_tasks_completed',
+    sprintsFinished: 'midhd_sprints_finished',
+    brainDump: 'midhd_brain_dump',
+    sprintMinutes: 'midhd_sprint_minutes',
+    lastActiveDate: 'midhd_last_active_date',
+    streakCount: 'midhd_streak_count',
+    dailyGoalTasks: 'midhd_daily_goal_tasks',
+    dailyGoalMinutes: 'midhd_daily_goal_minutes',
+    dailyStats: 'midhd_daily_stats',
   };
 
   const DEFAULT_TASKS = [

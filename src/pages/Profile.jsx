@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { api } from "@/api/apiClient";
 import StreakCard from "../components/Profile/StreakCard";
 import GoalsEditor from "../components/Profile/GoalsEditor";
 import StatsOverview from "../components/Profile/StatsOverview";
@@ -20,16 +20,16 @@ export default function Profile() {
   const loadAll = async () => {
     setLoading(true);
     const [me, allTasks, allSessions] = await Promise.all([
-      base44.auth.me(),
-      base44.entities.Task.list("-created_date", 200),
-      base44.entities.FocusSession.list("-created_date", 200),
+      api.auth.me(),
+      api.entities.Task.list("-created_date", 200),
+      api.entities.FocusSession.list("-created_date", 200),
     ]);
     setUser(me);
     setTasks(allTasks);
     setSessions(allSessions);
 
     // load or create profile
-    const profiles = await base44.entities.UserProfile.filter({ user_email: me.email });
+    const profiles = await api.entities.UserProfile.filter({ user_email: me.email });
     const today = new Date().toISOString().split("T")[0];
 
     if (profiles.length > 0) {
@@ -47,7 +47,7 @@ export default function Profile() {
           streak = 1;
         }
         const longest = Math.max(streak, p.longest_streak || 0);
-        const updated = await base44.entities.UserProfile.update(p.id, {
+        const updated = await api.entities.UserProfile.update(p.id, {
           streak_days: streak,
           last_active_date: today,
           longest_streak: longest,
@@ -60,7 +60,7 @@ export default function Profile() {
       }
     } else {
       // create new profile
-      const newProfile = await base44.entities.UserProfile.create({
+      const newProfile = await api.entities.UserProfile.create({
         user_email: me.email,
         daily_task_goal: 3,
         daily_focus_goal_minutes: 50,
@@ -77,7 +77,7 @@ export default function Profile() {
 
   const handleSaveGoals = async (goals) => {
     if (!profile) return;
-    const updated = await base44.entities.UserProfile.update(profile.id, goals);
+    const updated = await api.entities.UserProfile.update(profile.id, goals);
     setProfile(prev => ({ ...prev, ...updated }));
   };
 
@@ -103,7 +103,7 @@ export default function Profile() {
           <p className="text-slate-500 text-sm">יעדים, רצף וסטטיסטיקות</p>
         </div>
         <button
-          onClick={() => base44.auth.logout()}
+          onClick={() => api.auth.logout()}
           className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-white/70 text-slate-500 hover:text-red-500 hover:bg-red-50 transition-all text-sm"
         >
           <LogOut size={16} /> יציאה
@@ -136,6 +136,8 @@ export default function Profile() {
 
       {/* Stats */}
       <StatsOverview tasks={tasks} sessions={sessions} profile={profile} />
+
+      <BottomNav />
     </div>
   );
 }

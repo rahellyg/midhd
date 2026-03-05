@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { api } from "@/api/apiClient";
 import PomodoroTimer from "../components/focus/PomodoroTimer";
 import BottomNav from "../components/layout/BottomNav";
 import { Trophy, Flame } from "lucide-react";
@@ -11,20 +11,20 @@ export default function Focus() {
   const [justCompleted, setJustCompleted] = useState(false);
 
   useEffect(() => {
-    base44.entities.FocusSession.list("-created_date", 50).then(setSessions);
-    base44.entities.Task.filter({ status: "todo" }, "-created_date", 20).then(setTasks);
+    api.entities.FocusSession.list("-created_date", 50).then(setSessions);
+    api.entities.Task.filter({ status: "todo" }, "-created_date", 20).then(setTasks);
   }, []);
 
   const handleSessionComplete = async (minutes) => {
     setJustCompleted(true);
     setTimeout(() => setJustCompleted(false), 4000);
-    await base44.entities.FocusSession.create({
+    await api.entities.FocusSession.create({
       task_id: selectedTask?.id || null,
       duration_minutes: minutes,
       completed: true,
       session_date: new Date().toISOString().split("T")[0],
     });
-    const updated = await base44.entities.FocusSession.list("-created_date", 50);
+    const updated = await api.entities.FocusSession.list("-created_date", 50);
     setSessions(updated);
   };
 

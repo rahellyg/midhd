@@ -1,131 +1,203 @@
-import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
-import { createPageUrl } from "@/utils";
 import { Link } from "react-router-dom";
-import { CheckSquare, Timer, Leaf, Zap, TrendingUp, Sun, Moon, CloudSun } from "lucide-react";
-import BottomNav from "../components/layout/BottomNav";
+import { Brain, CheckCheck, Clock3, Lightbulb, Users2 } from "lucide-react";
+import { createPageUrl } from "@/utils";
+import { useAuth } from "@/lib/AuthContext";
 
-const adhd_quotes = [
-  "המוח שלך עובד אחרת – וזה כוח, לא חולשה 💜",
-  "צעד קטן אחד הוא ניצחון גדול 🌟",
-  "אתה לא צריך להיות מושלם, רק להתחיל ✨",
-  "כל יום הוא הזדמנות חדשה לנסות שוב 🌱",
-  "הצלחות קטנות מצטברות למשהו גדול 🚀",
+const featureCards = [
+  {
+    title: "ניהול זמן חכם",
+    description: "טכניקות פשוטות לניהול זמן שמותאמות במיוחד לאנשים עם ADHD. פומודורו, חלוקת משימות ועוד.",
+    icon: Clock3,
+    iconBg: "bg-[#E8927C26]",
+    iconColor: "text-[#E8927C]",
+  },
+  {
+    title: "רשימות משימות",
+    description: "מערכת משימות ויזואלית ופשוטה שעוזרת לך לעקוב אחרי ההתקדמות בלי להרגיש מוצף.",
+    icon: CheckCheck,
+    iconBg: "bg-[#2D5A4A1A]",
+    iconColor: "text-[#2D5A4A]",
+  },
+  {
+    title: "קהילה תומכת",
+    description: "הצטרף לקהילה של אנשים שמבינים אותך. שתף, למד וגדל יחד עם אחרים שמתמודדים עם אותם אתגרים.",
+    icon: Users2,
+    iconBg: "bg-[#A8D5BA4D]",
+    iconColor: "text-[#4A7A6A]",
+  },
 ];
 
-const getGreeting = () => {
-  const h = new Date().getHours();
-  if (h < 12) return { text: "בוקר טוב", icon: Sun, color: "text-amber-500" };
-  if (h < 17) return { text: "צהריים טובים", icon: CloudSun, color: "text-orange-400" };
-  return { text: "ערב טוב", icon: Moon, color: "text-indigo-500" };
-};
+const stats = [
+  { value: "10K+", label: "משתמשים פעילים" },
+  { value: "95%", label: "שביעות רצון" },
+  { value: "50+", label: "כלים וטכניקות" },
+  { value: "24/7", label: "תמיכה זמינה" },
+];
 
 export default function Dashboard() {
-  const [tasks, setTasks] = useState([]);
-  const [quote] = useState(adhd_quotes[Math.floor(Math.random() * adhd_quotes.length)]);
-  const greeting = getGreeting();
-  const GreetIcon = greeting.icon;
-
-  useEffect(() => {
-    base44.entities.Task.list("-created_date", 50).then(setTasks);
-  }, []);
-
-  const todayStr = new Date().toISOString().split("T")[0];
-  const todayTasks = tasks.filter(t => !t.scheduled_date || t.scheduled_date === todayStr);
-  const doneTasks = todayTasks.filter(t => t.status === "done");
-  const pendingTasks = todayTasks.filter(t => t.status !== "done");
-  const progress = todayTasks.length ? Math.round((doneTasks.length / todayTasks.length) * 100) : 0;
-
-  const quickLinks = [
-    { label: "משימות", icon: CheckSquare, page: "Tasks", color: "from-indigo-400 to-purple-500", desc: `${pendingTasks.length} ממתינות` },
-    { label: "פוקוס", icon: Timer, page: "Focus", color: "from-amber-400 to-orange-500", desc: "טיימר פומודורו" },
-    { label: "רגיעה", icon: Leaf, page: "Calm", color: "from-emerald-400 to-teal-500", desc: "נשימה ומדיטציה" },
-    { label: "דופמין", icon: Zap, page: "Dopamine", color: "from-pink-400 to-rose-500", desc: "טיפים לאנרגיה" },
+  const { isAuthenticated, user, logout } = useAuth();
+  const appPages = [
+    { page: "Tasks", label: "משימות" },
+    { page: "Focus", label: "פוקוס" },
+    { page: "Calm", label: "רגיעה" },
+    { page: "Dopamine", label: "דופמין" },
+    { page: "Forum", label: "פורום" },
+    { page: "AIHelp", label: "עזרת AI" },
+    { page: "DailyCheckIn", label: "שאלון יומי" },
   ];
+  const userName = user?.full_name || user?.name || user?.email || "הפרופיל שלי";
 
   return (
-    <div className="min-h-screen pb-28 px-4 pt-8 max-w-lg mx-auto">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-2 mb-1">
-          <GreetIcon size={22} className={greeting.color} />
-          <h1 className="text-2xl font-bold text-slate-800">{greeting.text}! 👋</h1>
-        </div>
-        <p className="text-slate-500 text-sm">{new Date().toLocaleDateString("he-IL", { weekday: "long", day: "numeric", month: "long" })}</p>
-      </div>
+    <div dir="rtl" className="relative min-h-screen overflow-hidden bg-[#F0F7F4] text-[#2D5A4A]">
+      <div className="landing-gradient-blob right-0 top-0 h-96 w-96 bg-[#7FB3A8]" />
+      <div className="landing-gradient-blob bottom-20 left-10 h-72 w-72 bg-[#A8D5BA] [animation-delay:-4s]" />
 
-      {/* Quote card */}
-      <div className="glass rounded-3xl p-5 mb-5 bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100">
-        <p className="text-slate-700 font-medium text-center leading-relaxed">"{quote}"</p>
-      </div>
+      <nav className="relative z-10 px-6 py-4">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#2D5A4A]">
+              <Brain className="h-6 w-6 text-white" />
+            </div>
+            <span className="text-xl font-bold">Midhd</span>
+          </div>
 
-      {/* Progress */}
-      {todayTasks.length > 0 && (
-        <div className="glass rounded-3xl p-5 mb-5">
-          <div className="flex justify-between items-center mb-3">
+          <div className="hidden items-center gap-8 md:flex">
+            <a href="#features" className="font-medium transition-opacity hover:opacity-70">תכונות</a>
+            <a href="#about" className="font-medium transition-opacity hover:opacity-70">אודות</a>
+            <a href="#contact" className="font-medium transition-opacity hover:opacity-70">צור קשר</a>
+          </div>
+
+          {isAuthenticated ? (
             <div className="flex items-center gap-2">
-              <TrendingUp size={18} className="text-indigo-500" />
-              <span className="font-bold text-slate-700">ההתקדמות שלי היום</span>
+              <Link
+                to={createPageUrl("Profile")}
+                className="rounded-full border border-[#2D5A4A33] bg-white/70 px-4 py-2 text-sm font-semibold text-[#2D5A4A] transition-all hover:scale-105"
+              >
+                פרופיל
+              </Link>
+              <button
+                type="button"
+                onClick={() => logout()}
+                className="rounded-full bg-[#E8927C] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:scale-105 hover:opacity-90"
+              >
+                התנתק
+              </button>
             </div>
-            <span className="text-2xl font-bold text-indigo-600">{progress}%</span>
-          </div>
-          <div className="w-full bg-slate-100 rounded-full h-3">
-            <div
-              className="bg-gradient-to-r from-indigo-500 to-purple-500 h-3 rounded-full transition-all duration-700"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-          <p className="text-sm text-slate-500 mt-2">
-            {doneTasks.length} מתוך {todayTasks.length} משימות הושלמו 🎉
-          </p>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Link
+                to="/login"
+                className="rounded-full border border-[#2D5A4A33] bg-white/70 px-4 py-2 text-sm font-semibold text-[#2D5A4A] transition-all hover:scale-105"
+              >
+                התחברות
+              </Link>
+              <Link
+                to="/login?mode=subscribe"
+                className="rounded-full bg-[#E8927C] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:scale-105 hover:opacity-90"
+              >
+                הרשמה
+              </Link>
+            </div>
+          )}
         </div>
-      )}
+      </nav>
 
-      {/* Quick links */}
-      <div className="grid grid-cols-2 gap-3 mb-5">
-        {quickLinks.map(({ label, icon: Icon, page, color, desc }) => (
-          <Link
-            key={page}
-            to={createPageUrl(page)}
-            className="glass rounded-3xl p-5 flex flex-col gap-2 task-card"
-          >
-            <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${color} flex items-center justify-center shadow-lg`}>
-              <Icon size={24} className="text-white" />
+      <main className="relative z-10 px-6 pb-20 pt-12" id="about">
+        <div className="mx-auto w-full max-w-6xl">
+          <section className="landing-fade-in mx-auto mb-16 max-w-3xl text-center">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-[#2D5A4A1A] px-4 py-2">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-[#E8927C]" />
+              <span className="text-sm font-medium">מותאם במיוחד לך</span>
             </div>
-            <div>
-              <p className="font-bold text-slate-800">{label}</p>
-              <p className="text-xs text-slate-500">{desc}</p>
-            </div>
-          </Link>
-        ))}
-      </div>
 
-      {/* Upcoming tasks */}
-      {pendingTasks.length > 0 && (
-        <div className="glass rounded-3xl p-5">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="font-bold text-slate-700">משימות להיום</h3>
-            <Link to={createPageUrl("Tasks")} className="text-indigo-500 text-sm font-medium">הכל →</Link>
-          </div>
-          {pendingTasks.slice(0, 3).map(task => (
-            <div key={task.id} className="flex items-center gap-3 py-2 border-b border-slate-50 last:border-0">
-              <div className={`w-2 h-2 rounded-full ${task.priority === "high" ? "bg-red-400" : task.priority === "medium" ? "bg-amber-400" : "bg-emerald-400"}`} />
-              <span className="text-sm text-slate-700 flex-1 line-clamp-1">{task.title}</span>
-              {task.estimated_minutes && <span className="text-xs text-slate-400">{task.estimated_minutes}′</span>}
+            <h1 className="mb-6 text-4xl font-bold leading-tight md:text-5xl lg:text-6xl">
+              המקום שלך
+              <br />
+              להתמקד ולהצליח
+            </h1>
+
+            <p className="mb-8 text-lg leading-relaxed text-[#4A7A6A] md:text-xl">
+              כלים, טיפים ותמיכה לאנשים עם קשב וריכוז.
+              <br />
+              כי כולם ראויים להזדמנות להתמקד בדרך שמתאימה להם.
+            </p>
+
+            {isAuthenticated ? (
+              <div className="flex flex-col items-center gap-4">
+                <div className="rounded-full bg-[#2D5A4A1A] px-5 py-2 text-sm font-semibold text-[#2D5A4A]">
+                  מחובר/ת בתור {userName}
+                </div>
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  {appPages.map(({ page, label }) => (
+                    <Link
+                      key={page}
+                      to={createPageUrl(page)}
+                      className="rounded-full border border-[#2D5A4A33] bg-white/80 px-4 py-2 text-sm font-semibold text-[#2D5A4A] transition-all hover:scale-105"
+                    >
+                      {label}
+                    </Link>
+                  ))}
+                  <Link
+                    to={createPageUrl("Profile")}
+                    className="rounded-full bg-[#E8927C] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:scale-105"
+                  >
+                    לפרופיל
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+                <Link
+                  to="/login"
+                  className="rounded-full bg-[#E8927C] px-8 py-4 text-lg font-semibold text-white shadow-[0_10px_30px_rgba(232,146,124,0.3)] transition-all hover:scale-105"
+                >
+                  התחברות
+                </Link>
+                <Link
+                  to="/login?mode=subscribe"
+                  className="rounded-full border-2 border-[#2D5A4A] bg-transparent px-8 py-4 text-lg font-semibold text-[#2D5A4A] transition-all hover:scale-105"
+                >
+                  הרשמה מהירה
+                </Link>
+              </div>
+            )}
+          </section>
+
+          <section id="features" className="grid gap-6 md:grid-cols-3">
+            {featureCards.map(({ title, description, icon: Icon, iconBg, iconColor }, index) => (
+              <article
+                key={title}
+                className={`landing-card-hover landing-fade-in rounded-3xl bg-white p-8 shadow-sm landing-stagger-${index + 2}`}
+              >
+                <div className={`mb-6 flex h-14 w-14 items-center justify-center rounded-2xl ${iconBg}`}>
+                  <Icon className={`h-7 w-7 ${iconColor}`} />
+                </div>
+                <h3 className="mb-3 text-xl font-bold">{title}</h3>
+                <p className="text-[#6B9B8A]">{description}</p>
+              </article>
+            ))}
+          </section>
+
+          <section className="landing-fade-in mt-16 rounded-3xl bg-[#2D5A4A] p-8 md:p-12" id="contact">
+            <div className="grid grid-cols-2 gap-8 text-center md:grid-cols-4">
+              {stats.map((item) => (
+                <div key={item.label}>
+                  <div className="mb-2 text-3xl font-bold text-white md:text-4xl">{item.value}</div>
+                  <div className="text-[#A8D5BA]">{item.label}</div>
+                </div>
+              ))}
             </div>
-          ))}
+          </section>
         </div>
-      )}
+      </main>
 
-      {todayTasks.length === 0 && (
-        <div className="text-center py-8 glass rounded-3xl">
-          <p className="text-4xl mb-3">🌟</p>
-          <p className="font-bold text-slate-700">אין משימות להיום עדיין</p>
-          <p className="text-slate-500 text-sm mt-1">לחץ על 'משימות' כדי להוסיף</p>
+      <footer className="relative z-10 border-t border-[#2D5A4A1A] px-6 py-8">
+        <div className="mx-auto max-w-6xl text-center">
+          <p className="text-[#6B9B8A]">© 2026 Midhd. נבנה באהבה לקהילת ה-ADHD.</p>
         </div>
-      )}
+      </footer>
 
-      <BottomNav />
+      <Lightbulb className="pointer-events-none absolute bottom-6 left-6 h-6 w-6 text-[#2D5A4A4D]" />
     </div>
   );
 }

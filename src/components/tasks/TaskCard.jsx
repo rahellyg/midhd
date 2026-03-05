@@ -1,6 +1,6 @@
 import { CheckCircle2, Circle, Clock, Flame, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { api } from "@/api/apiClient";
 
 const priorityConfig = {
   high: { label: "גבוהה", color: "bg-red-100 text-red-600", dot: "bg-red-500" },
@@ -19,7 +19,7 @@ export default function TaskCard({ task, onUpdate, onDelete }) {
 
   const toggleDone = async () => {
     const newStatus = task.status === "done" ? "todo" : "done";
-    await base44.entities.Task.update(task.id, {
+    await api.entities.Task.update(task.id, {
       status: newStatus,
       completed_at: newStatus === "done" ? new Date().toISOString() : null,
     });
@@ -29,12 +29,12 @@ export default function TaskCard({ task, onUpdate, onDelete }) {
   const toggleStep = async (idx) => {
     const steps = [...(task.steps || [])];
     steps[idx] = { ...steps[idx], done: !steps[idx].done };
-    await base44.entities.Task.update(task.id, { steps });
+    await api.entities.Task.update(task.id, { steps });
     onUpdate?.();
   };
 
   const handleDelete = async () => {
-    await base44.entities.Task.delete(task.id);
+    await api.entities.Task.delete(task.id);
     onDelete?.();
   };
 

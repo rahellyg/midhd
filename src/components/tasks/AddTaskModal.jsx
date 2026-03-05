@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { api } from "@/api/apiClient";
 import { X, Plus, Minus } from "lucide-react";
 
 export default function AddTaskModal({ onClose, onSave }) {
@@ -26,7 +26,7 @@ export default function AddTaskModal({ onClose, onSave }) {
 
   const handleSave = async () => {
     if (!form.title.trim()) return;
-    await base44.entities.Task.create(form);
+    await api.entities.Task.create(form);
     onSave?.();
     onClose();
   };

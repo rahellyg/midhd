@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 :root {
-  --background: 248 250 252;
-  --foreground: 30 27 75;
+  --background: 244 247 240;
+  --foreground: 58 45 30;
 }
 
 * {
@@ -13,7 +13,7 @@
 
 body {
   font-family: 'Segoe UI', 'Arial', sans-serif;
-  background: linear-gradient(135deg, #f0f4ff 0%, #faf5ff 50%, #f0fdf4 100%);
+  background: linear-gradient(135deg, #edf5ea 0%, #f8f2e6 52%, #e6efe2 100%);
   min-height: 100vh;
 }
 
@@ -48,17 +48,17 @@ body {
 }
 .task-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 20px 40px rgba(99, 102, 241, 0.12);
+  box-shadow: 0 20px 40px rgba(79, 154, 95, 0.16);
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, #4f9a5f, #8e774e);
   transition: all 0.25s ease;
 }
 .btn-primary:hover {
-  background: linear-gradient(135deg, #5558e8, #7c4de6);
+  background: linear-gradient(135deg, #3f7e4f, #745f3e);
   transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 8px 20px rgba(79, 154, 95, 0.35);
 }
 
 .scrollbar-hide::-webkit-scrollbar { display: none; }

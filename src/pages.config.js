@@ -53,6 +53,9 @@ import Focus from './pages/Focus';
 import Calm from './pages/Calm';
 import Dopamine from './pages/Dopamine';
 import Profile from './pages/Profile';
+import AIHelp from './pages/AIHelp';
+import DailyCheckIn from './pages/DailyCheckIn';
+import Forum from './pages/Forum';
 import __Layout from './Layout.jsx';
 
 
@@ -62,6 +65,9 @@ export const PAGES = {
     "Focus": Focus,
     "Calm": Calm,
     "Dopamine": Dopamine,
+    "AIHelp": AIHelp,
+    "DailyCheckIn": DailyCheckIn,
+    "Forum": Forum,
     "Profile": Profile,
 }
 

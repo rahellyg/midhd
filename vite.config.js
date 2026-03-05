@@ -1,29 +1,30 @@
-import base44 from "@base44/vite-plugin"
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { defineConfig } from 'vite'
+import path from 'node:path'
 
 // https://vite.dev/config/
-export default defineConfig({
-  logLevel: 'error', // Suppress warnings, only show errors
-  plugins: [
-    base44({
-      // Support for legacy code that imports the base44 SDK with @/integrations, @/entities, etc.
-      // can be removed if the code has been updated to use the new SDK imports from @base44/sdk
-      legacySDKImports: process.env.BASE44_LEGACY_SDK_IMPORTS === 'true',
-      hmrNotifier: true,
-      navigationNotifier: true,
-      analyticsTracker: true,
-      visualEditAgent: true
-    }),
-    react(),
-    VitePWA({
+export default defineConfig(({ command }) => {
+  const isDevServer = command === 'serve';
+
+  return {
+    base: isDevServer ? '/' : '/midhd/',
+    logLevel: 'error', // Suppress warnings, only show errors
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src')
+      }
+    },
+    plugins: [
+      react(),
+      // Skip PWA during local dev to avoid noisy manifest requests in tunneled environments.
+      !isDevServer && VitePWA({
       registerType: 'autoUpdate',
       manifestFilename: 'manifest.json',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+      includeAssets: ['app-icon.svg'],
       manifest: {
-        name: 'FocusNest – קן הריכוז',
-        short_name: 'FocusNest',
+        name: 'midhd – קן הריכוז',
+        short_name: 'midhd',
         description: 'ניהול קשב וריכוז – משימות, פוקוס, רגיעה וטיפים',
         theme_color: '#6366f1',
         background_color: '#f0f4ff',
@@ -35,19 +36,19 @@ export default defineConfig({
         lang: 'he',
         icons: [
           {
-            src: 'https://base44.com/logo_v2.svg',
+            src: '/app-icon.svg',
             sizes: 'any',
             type: 'image/svg+xml',
             purpose: 'any'
           },
           {
-            src: 'https://base44.com/logo_v2.svg',
+            src: '/app-icon.svg',
             sizes: '192x192',
             type: 'image/svg+xml',
             purpose: 'maskable'
           },
           {
-            src: 'https://base44.com/logo_v2.svg',
+            src: '/app-icon.svg',
             sizes: '512x512',
             type: 'image/svg+xml',
             purpose: 'maskable'
@@ -58,15 +59,16 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/base44\.com\/.*/i,
+            urlPattern: /^https:\/\/.*/i,
             handler: 'CacheFirst',
             options: {
-              cacheName: 'base44-assets',
+              cacheName: 'remote-assets',
               expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 30 }
             }
           }
         ]
       }
-    })
-  ]
+      })
+    ].filter(Boolean)
+  };
 });
