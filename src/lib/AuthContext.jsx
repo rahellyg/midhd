@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { api, getAppPublicSettings, isApiConfigured } from '@/api/apiClient';
+import { api, getAppPublicSettings, isApiConfigured, isLocalFallbackEnabled } from '@/api/apiClient';
 import { appParams } from '@/lib/app-params';
+import { sendRegistrationAlertEmail } from '@/lib/contactEmail';
 
 const AuthContext = createContext();
 const hasValidAppId = (value) => Boolean(value && value !== 'null' && value !== 'undefined');
@@ -23,7 +24,7 @@ export const AuthProvider = ({ children }) => {
       setIsLoadingPublicSettings(true);
       setAuthError(null);
 
-      if (!hasValidAppId(appParams.appId)) {
+      if (!hasValidAppId(appParams.appId) && isLocalFallbackEnabled) {
         setAppPublicSettings({
           id: 'local',
           public_settings: { mode: 'local' }
@@ -94,6 +95,11 @@ export const AuthProvider = ({ children }) => {
       // Now check if the user is authenticated
       setIsLoadingAuth(true);
       const currentUser = await api.auth.me();
+
+      if (isApiConfigured) {
+        await trackCloudAuthEvent(currentUser);
+      }
+
       setUser(currentUser);
       setIsAuthenticated(true);
       setAuthError(null);
@@ -114,6 +120,44 @@ export const AuthProvider = ({ children }) => {
           message: 'Authentication required'
         });
       }
+    }
+  };
+
+  const trackCloudAuthEvent = async (currentUser) => {
+    const email = String(currentUser?.email || '').trim().toLowerCase();
+    if (!email || typeof window === 'undefined') {
+      return;
+    }
+
+    const sessionKey = `midhd_cloud_auth_event_logged_${email}`;
+    if (window.sessionStorage.getItem(sessionKey) === '1') {
+      return;
+    }
+
+    try {
+      const existingEvents = await api.entities['AuthEvent'].filter({ user_email: email }, '-created_date', 1);
+      const eventType = Array.isArray(existingEvents) && existingEvents.length > 0 ? 'login' : 'signup';
+      await api.entities['AuthEvent'].create({
+        event_type: eventType,
+        user_email: email,
+        user_name: currentUser?.full_name || currentUser?.name || null,
+        provider: currentUser?.provider === 'google' ? 'google' : 'email',
+        event_time: new Date().toISOString()
+      });
+
+      if (eventType === 'signup') {
+        void sendRegistrationAlertEmail({
+          userEmail: email,
+          userName: currentUser?.full_name || currentUser?.name || null,
+          provider: currentUser?.provider === 'google' ? 'google' : 'email',
+        }).catch(() => {
+          // Email alerts should never block auth flow.
+        });
+      }
+
+      window.sessionStorage.setItem(sessionKey, '1');
+    } catch {
+      // Tracking should never block auth flow.
     }
   };
 

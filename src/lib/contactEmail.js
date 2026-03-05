@@ -72,4 +72,43 @@ export const sendContactEmail = async ({ fullName, email, message, attachment })
   return { ok: true };
 };
 
+export const sendRegistrationAlertEmail = async ({ userEmail, userName, provider }) => {
+  if (!hasValidConfig()) {
+    throw new Error('missing_email_config');
+  }
+
+  const payload = {
+    service_id: requiredConfig.serviceId,
+    template_id: requiredConfig.templateId,
+    user_id: requiredConfig.publicKey,
+    template_params: {
+      to_email: CONTACT_RECEIVER_EMAIL,
+      from_name: 'midhd registrations',
+      from_email: 'noreply@midhd.app',
+      message: [
+        'New user registration detected.',
+        `Email: ${userEmail || 'unknown'}`,
+        `Name: ${userName || 'unknown'}`,
+        `Provider: ${provider || 'unknown'}`,
+      ].join('\n'),
+      app_name: 'midhd',
+    },
+  };
+
+  const response = await fetch(EMAILJS_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const details = await response.text();
+    throw new Error(details || 'email_send_failed');
+  }
+
+  return { ok: true };
+};
+
 export const getContactReceiverEmail = () => CONTACT_RECEIVER_EMAIL;

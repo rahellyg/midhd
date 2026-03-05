@@ -21,12 +21,24 @@ const normalizeBaseUrl = (url) => {
 const isValidAppId = Boolean(appId && appId !== 'null' && appId !== 'undefined');
 const baseUrl = normalizeBaseUrl(appBaseUrl);
 const isApiConfigured = isValidAppId && Boolean(baseUrl);
+const isBrowser = typeof window !== 'undefined';
+const isLocalHost = isBrowser
+  ? ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname)
+  : false;
+const isLocalFallbackEnabled = !isApiConfigured && (import.meta.env.DEV || isLocalHost);
 const appApiPath = isValidAppId ? `/api/apps/${appId}` : '/api/apps/null';
 const appApiRoot = `${baseUrl}${appApiPath}`;
 const publicApiRoot = `${baseUrl}/api/apps/public`;
 const LOCAL_DB_KEY = 'midhd_local_db_v1';
 const LOCAL_USER_KEY = 'midhd_local_user_v1';
 const LOCAL_AUTH_USERS_KEY = 'midhd_local_auth_users_v1';
+const CLOUD_CONFIG_ERROR = 'Cloud sync is not configured. Set VITE_APP_ID and VITE_API_BASE_URL.';
+
+const ensureLocalFallbackEnabled = () => {
+  if (!isLocalFallbackEnabled) {
+    throw new ApiError(CLOUD_CONFIG_ERROR, 503, null);
+  }
+};
 
 const createLocalDb = () => ({
   Task: [],
@@ -360,6 +372,7 @@ const resolveFromUrl = (fromUrl) => {
 
 export const getAppPublicSettings = async (id) => {
   if (!isApiConfigured) {
+    ensureLocalFallbackEnabled();
     return {
       id: id || 'local',
       public_settings: { mode: 'local' }
@@ -376,6 +389,7 @@ export const api = {
   auth: {
     me: async () => {
       if (!isApiConfigured) {
+        ensureLocalFallbackEnabled();
         const localUser = getLocalAuthUser();
         if (!localUser) {
           throw new ApiError('Not authenticated', 401, null);
@@ -393,6 +407,7 @@ export const api = {
         api.auth.redirectToLogin(window.location.href);
         return null;
       }
+      ensureLocalFallbackEnabled();
 
       const normalizedEmail = String(email || '').trim().toLowerCase();
       const normalizedPassword = String(password || '');
@@ -450,6 +465,7 @@ export const api = {
         api.auth.redirectToLogin(window.location.href);
         return null;
       }
+      ensureLocalFallbackEnabled();
       const user = {
         id: createLocalId(),
         email: 'demo.google@midhd.dev',
@@ -462,6 +478,7 @@ export const api = {
       return sessionUser;
     },
     signInWithGoogleCredential: async (credentialToken) => {
+      ensureLocalFallbackEnabled();
       const profile = decodeJwtPayload(credentialToken);
       const user = {
         id: profile.sub || createLocalId(),
@@ -499,11 +516,33 @@ export const api = {
   entities: new Proxy(
     {},
     {
-      get: (_target, entityName) => (
-        isApiConfigured ? entityApi(String(entityName)) : localEntityApi(String(entityName))
-      )
+      get: (_target, entityName) => {
+        if (isApiConfigured) {
+          return entityApi(String(entityName));
+        }
+        if (isLocalFallbackEnabled) {
+          return localEntityApi(String(entityName));
+        }
+        return {
+          list: async () => {
+            throw new ApiError(CLOUD_CONFIG_ERROR, 503, null);
+          },
+          filter: async () => {
+            throw new ApiError(CLOUD_CONFIG_ERROR, 503, null);
+          },
+          create: async () => {
+            throw new ApiError(CLOUD_CONFIG_ERROR, 503, null);
+          },
+          update: async () => {
+            throw new ApiError(CLOUD_CONFIG_ERROR, 503, null);
+          },
+          delete: async () => {
+            throw new ApiError(CLOUD_CONFIG_ERROR, 503, null);
+          }
+        };
+      }
     }
   )
 };
 
-export { isApiConfigured };
+export { isApiConfigured, isLocalFallbackEnabled };
