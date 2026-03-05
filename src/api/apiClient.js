@@ -27,7 +27,7 @@ const isBrowser = typeof window !== 'undefined';
 const isLocalHost = isBrowser
   ? ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname)
   : false;
-const isLocalFallbackEnabled = !isApiConfigured && (import.meta.env.DEV || isLocalHost);
+const isLocalFallbackEnabled = !isApiConfigured && (import.meta.env.DEV || isLocalHost || isFirebaseConfigured);
 const appApiPath = isValidAppId ? `/api/apps/${appId}` : '/api/apps/null';
 const appApiRoot = `${baseUrl}${appApiPath}`;
 const publicApiRoot = `${baseUrl}/api/apps/public`;
