@@ -27,27 +27,35 @@ export default function AddTaskModal({ onClose, onSave }) {
     setForm(f => ({ ...f, steps: f.steps.filter((_, i) => i !== idx) }));
   };
 
+  const [saving, setSaving] = useState(false);
+
   const handleSave = async () => {
-    if (!form.title.trim()) return;
+    if (!form.title.trim() || saving) return;
+    setSaving(true);
     try {
-      await api.entities.Task.create({ ...form, user_email: user?.email || null });
+      const savePromise = api.entities.Task.create({ ...form, user_email: user?.email || null });
+      const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Save timeout')), 8000));
+      await Promise.race([savePromise, timeout]);
       onSave?.();
     } catch (err) {
       console.error('Failed to save task:', err);
+    } finally {
+      setSaving(false);
+      onClose();
     }
-    onClose();
   };
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 backdrop-blur-sm p-4 pb-24">
-      <div className="glass rounded-3xl w-full max-w-lg p-6 max-h-[80vh] overflow-y-auto scrollbar-hide">
-        <div className="flex justify-between items-center mb-5">
+      <div className="glass rounded-3xl w-full max-w-lg max-h-[80vh] flex flex-col">
+        <div className="flex justify-between items-center p-6 pb-3">
           <h2 className="text-xl font-bold text-slate-800">משימה חדשה</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-700">
             <X size={22} />
           </button>
         </div>
 
+        <div className="overflow-y-auto px-6 flex-1">
         <div className="space-y-4">
           <input
             className="w-full bg-white/80 rounded-2xl px-4 py-3 text-slate-800 placeholder-slate-400 border border-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-300"
@@ -136,13 +144,17 @@ export default function AddTaskModal({ onClose, onSave }) {
             ))}
           </div>
         </div>
+        </div>
 
-        <button
-          onClick={handleSave}
-          className="btn-primary w-full text-white font-semibold rounded-2xl py-3.5 mt-5"
-        >
-          שמור משימה ✨
-        </button>
+        <div className="p-6 pt-3">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="btn-primary w-full text-white font-semibold rounded-2xl py-3.5 disabled:opacity-50"
+          >
+            {saving ? 'שומר...' : 'שמור משימה ✨'}
+          </button>
+        </div>
       </div>
     </div>
   );
