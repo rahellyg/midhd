@@ -182,34 +182,13 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const signInWithGoogle = async () => {
-    setIsSigningIn(true);
-    try {
-      const currentUser = await api.auth.signInWithGoogle();
-      if (currentUser) {
-        setUser(currentUser);
-        setIsAuthenticated(true);
-      }
-      setAuthError(null);
-      return currentUser;
-    } finally {
-      setIsSigningIn(false);
-    }
-  };
 
-  const signInWithGoogleCredential = async (credentialToken) => {
-    setIsSigningIn(true);
-    try {
-      const currentUser = await api.auth.signInWithGoogleCredential(credentialToken);
-      if (currentUser) {
-        setUser(currentUser);
-        setIsAuthenticated(true);
-      }
-      setAuthError(null);
-      return currentUser;
-    } finally {
-      setIsSigningIn(false);
-    }
+  // Google Auth temporarily disabled
+  const signInWithGoogle = async () => {
+    throw new Error('Google sign-in is currently disabled.');
+  };
+  const signInWithGoogleCredential = async () => {
+    throw new Error('Google sign-in is currently disabled.');
   };
 
   const logout = (shouldRedirect = true) => {
@@ -241,8 +220,8 @@ export const AuthProvider = ({ children }) => {
       logout,
       isSigningIn,
       signInWithEmail,
-      signInWithGoogle,
-      signInWithGoogleCredential,
+      // signInWithGoogle,
+      // signInWithGoogleCredential,
       navigateToLogin,
       checkAppState
     }}>
