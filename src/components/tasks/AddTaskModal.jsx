@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { api } from "@/api/apiClient";
+import { useAuth } from "@/lib/AuthContext";
 import { X, Plus, Minus } from "lucide-react";
 
 export default function AddTaskModal({ onClose, onSave }) {
+  const { user } = useAuth();
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -27,7 +29,7 @@ export default function AddTaskModal({ onClose, onSave }) {
 
   const handleSave = async () => {
     if (!form.title.trim()) return;
-    await api.entities.Task.create(form);
+    await api.entities.Task.create({ ...form, user_email: user?.email || null });
     onSave?.();
     onClose();
   };

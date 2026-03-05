@@ -1,4 +1,6 @@
 import { appParams } from '@/lib/app-params';
+import { isFirebaseConfigured } from '@/lib/firebase';
+import { firestoreEntityApi } from '@/lib/db';
 
 const { appId, token, functionsVersion, appBaseUrl } = appParams;
 
@@ -517,6 +519,9 @@ export const api = {
     {},
     {
       get: (_target, entityName) => {
+        if (isFirebaseConfigured) {
+          return firestoreEntityApi(String(entityName));
+        }
         if (isApiConfigured) {
           return entityApi(String(entityName));
         }
@@ -545,4 +550,4 @@ export const api = {
   )
 };
 
-export { isApiConfigured, isLocalFallbackEnabled };
+export { isApiConfigured, isLocalFallbackEnabled, isFirebaseConfigured };

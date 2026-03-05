@@ -1,19 +1,26 @@
 import { useState, useEffect } from "react";
 import { api } from "@/api/apiClient";
+import { useAuth } from "@/lib/AuthContext";
 import PomodoroTimer from "../components/focus/PomodoroTimer";
 import BottomNav from "../components/layout/BottomNav";
 import { Trophy, Flame } from "lucide-react";
 
 export default function Focus() {
+  const { user } = useAuth();
   const [sessions, setSessions] = useState([]);
   const [selectedTask, setSelectedTask] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [justCompleted, setJustCompleted] = useState(false);
 
   useEffect(() => {
-    api.entities.FocusSession.list("-created_date", 50).then(setSessions);
-    api.entities.Task.filter({ status: "todo" }, "-created_date", 20).then(setTasks);
-  }, []);
+    if (user?.email) {
+      api.entities.FocusSession.filter({ user_email: user.email }, "-created_date", 50).then(setSessions);
+      api.entities.Task.filter({ user_email: user.email, status: "todo" }, "-created_date", 20).then(setTasks);
+    } else {
+      api.entities.FocusSession.list("-created_date", 50).then(setSessions);
+      api.entities.Task.filter({ status: "todo" }, "-created_date", 20).then(setTasks);
+    }
+  }, [user]);
 
   const handleSessionComplete = async (minutes) => {
     setJustCompleted(true);
@@ -23,8 +30,11 @@ export default function Focus() {
       duration_minutes: minutes,
       completed: true,
       session_date: new Date().toISOString().split("T")[0],
+      user_email: user?.email || null,
     });
-    const updated = await api.entities.FocusSession.list("-created_date", 50);
+    const updated = user?.email
+      ? await api.entities.FocusSession.filter({ user_email: user.email }, "-created_date", 50)
+      : await api.entities.FocusSession.list("-created_date", 50);
     setSessions(updated);
   };
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { api } from "@/api/apiClient";
+import { useAuth } from "@/lib/AuthContext";
 import { Plus, Bell, BellOff } from "lucide-react";
 import TaskCard from "../components/tasks/TaskCard";
 import AddTaskModal from "../components/tasks/AddTaskModal";
@@ -30,6 +31,7 @@ const energyFilters = [
 ];
 
 export default function Tasks() {
+  const { user } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [statusFilter, setStatusFilter] = useState("all");
   const [energyFilter, setEnergyFilter] = useState("all");
@@ -43,7 +45,9 @@ export default function Tasks() {
 
   const load = async () => {
     setLoading(true);
-    const data = await api.entities.Task.list("-created_date", 100);
+    const data = user?.email
+      ? await api.entities.Task.filter({ user_email: user.email }, "-created_date", 100)
+      : await api.entities.Task.list("-created_date", 100);
     setTasks(data);
     setLoading(false);
   };
