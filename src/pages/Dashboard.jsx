@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Brain, CheckCheck, Clock3, Lightbulb, Users2 } from "lucide-react";
+import { CheckCheck, Clock3, Lightbulb, Users2 } from "lucide-react";
 import { createPageUrl } from "@/utils";
 import { useAuth } from "@/lib/AuthContext";
 import { getContactReceiverEmail, sendContactEmail } from "@/lib/contactEmail";
@@ -42,6 +42,9 @@ export default function Dashboard() {
   const [contactFile, setContactFile] = useState(null);
   const [sendingContact, setSendingContact] = useState(false);
   const [contactStatus, setContactStatus] = useState({ type: "", text: "" });
+  const [installPromptEvent, setInstallPromptEvent] = useState(null);
+  const [isStandalone, setIsStandalone] = useState(false);
+  const [showIosInstallHint, setShowIosInstallHint] = useState(false);
   const appPages = [
     { page: "Tasks", label: "משימות" },
     { page: "Focus", label: "פוקוס" },
@@ -53,6 +56,42 @@ export default function Dashboard() {
   ];
   const userName = user?.full_name || user?.name || user?.email || "הפרופיל שלי";
   const receiverEmail = getContactReceiverEmail();
+
+  useEffect(() => {
+    const isIos = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+    const standalone = window.matchMedia?.("(display-mode: standalone)")?.matches;
+    setIsStandalone(Boolean(standalone));
+    setShowIosInstallHint(Boolean(isIos && !standalone));
+
+    const handleBeforeInstallPrompt = (event) => {
+      event.preventDefault();
+      setInstallPromptEvent(event);
+    };
+
+    const handleAppInstalled = () => {
+      setInstallPromptEvent(null);
+      setIsStandalone(true);
+      setShowIosInstallHint(false);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleAppInstalled);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (!installPromptEvent) return;
+
+    installPromptEvent.prompt();
+    const choiceResult = await installPromptEvent.userChoice;
+    if (choiceResult?.outcome === "accepted") {
+      setInstallPromptEvent(null);
+    }
+  };
 
   const handleContactChange = (field, value) => {
     setContactStatus({ type: "", text: "" });
@@ -117,9 +156,7 @@ export default function Dashboard() {
       <nav className="relative z-10 px-6 py-4">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#2D5A4A]">
-              <Brain className="h-6 w-6 text-white" />
-            </div>
+            <img src="/app-icon.svg" alt="Midhd logo" className="h-10 w-10 rounded-xl" />
             <span className="text-xl font-bold">Midhd</span>
           </div>
 
@@ -205,7 +242,27 @@ export default function Dashboard() {
                   >
                     לפרופיל
                   </Link>
+                  <a
+                    href="#contact"
+                    className="rounded-full border border-[#2D5A4A33] bg-white/90 px-5 py-2.5 text-sm font-semibold text-[#2D5A4A] transition-all hover:scale-105"
+                  >
+                    צור קשר
+                  </a>
+                  {!isStandalone && installPromptEvent && (
+                    <button
+                      type="button"
+                      onClick={handleInstallApp}
+                      className="rounded-full bg-[#2D5A4A] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:scale-105"
+                    >
+                      התקנת האפליקציה
+                    </button>
+                  )}
                 </div>
+                {!isStandalone && showIosInstallHint && (
+                  <p className="text-xs text-[#4A7A6A]">
+                    באייפון: לחצו על שיתוף ואז "הוספה למסך הבית" כדי להתקין את האפליקציה.
+                  </p>
+                )}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
@@ -221,7 +278,27 @@ export default function Dashboard() {
                 >
                   הרשמה מהירה
                 </Link>
+                <a
+                  href="#contact"
+                  className="rounded-full border border-[#2D5A4A33] bg-white/90 px-8 py-4 text-lg font-semibold text-[#2D5A4A] transition-all hover:scale-105"
+                >
+                  צור קשר
+                </a>
+                {!isStandalone && installPromptEvent && (
+                  <button
+                    type="button"
+                    onClick={handleInstallApp}
+                    className="rounded-full bg-[#2D5A4A] px-8 py-4 text-lg font-semibold text-white transition-all hover:scale-105"
+                  >
+                    התקנת האפליקציה
+                  </button>
+                )}
               </div>
+            )}
+            {!isAuthenticated && !isStandalone && showIosInstallHint && (
+              <p className="mt-3 text-xs text-[#4A7A6A]">
+                באייפון: לחצו על שיתוף ואז "הוספה למסך הבית" כדי להתקין את האפליקציה.
+              </p>
             )}
           </section>
 

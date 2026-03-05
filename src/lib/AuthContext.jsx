@@ -173,8 +173,8 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
     
     if (shouldRedirect) {
-      // Redirect to Home after sign-out.
-      api.auth.logout('/');
+      // Redirect to app home while respecting Vite base path (e.g. /midhd/ on Pages).
+      api.auth.logout(import.meta.env.BASE_URL || '/');
     } else {
       // Just remove the token without redirect
       api.auth.logout();
