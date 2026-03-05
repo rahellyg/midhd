@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Brain, CheckCheck, Clock3, Lightbulb, Users2 } from "lucide-react";
 import { createPageUrl } from "@/utils";
 import { useAuth } from "@/lib/AuthContext";
+import { getContactReceiverEmail, sendContactEmail } from "@/lib/contactEmail";
 
 const featureCards = [
   {
@@ -36,6 +38,10 @@ const stats = [
 
 export default function Dashboard() {
   const { isAuthenticated, user, logout } = useAuth();
+  const [contactForm, setContactForm] = useState({ fullName: "", email: "", message: "" });
+  const [contactFile, setContactFile] = useState(null);
+  const [sendingContact, setSendingContact] = useState(false);
+  const [contactStatus, setContactStatus] = useState({ type: "", text: "" });
   const appPages = [
     { page: "Tasks", label: "משימות" },
     { page: "Focus", label: "פוקוס" },
@@ -46,6 +52,62 @@ export default function Dashboard() {
     { page: "DailyCheckIn", label: "שאלון יומי" },
   ];
   const userName = user?.full_name || user?.name || user?.email || "הפרופיל שלי";
+  const receiverEmail = getContactReceiverEmail();
+
+  const handleContactChange = (field, value) => {
+    setContactStatus({ type: "", text: "" });
+    setContactForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleContactSubmit = async (event) => {
+    event.preventDefault();
+    const trimmedName = contactForm.fullName.trim();
+    const trimmedEmail = contactForm.email.trim();
+    const trimmedMessage = contactForm.message.trim();
+
+    if (!trimmedName || !trimmedEmail || !trimmedMessage) {
+      setContactStatus({ type: "error", text: "נא למלא שם, אימייל והודעה לפני שליחה." });
+      return;
+    }
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(trimmedEmail)) {
+      setContactStatus({ type: "error", text: "נא להזין כתובת אימייל תקינה." });
+      return;
+    }
+
+    if (contactFile && contactFile.size > 10 * 1024 * 1024) {
+      setContactStatus({ type: "error", text: "הקובץ גדול מדי. אפשר להעלות עד 10MB." });
+      return;
+    }
+
+    try {
+      setSendingContact(true);
+      setContactStatus({ type: "", text: "" });
+
+      await sendContactEmail({
+        fullName: trimmedName,
+        email: trimmedEmail,
+        message: trimmedMessage,
+        attachment: contactFile,
+      });
+
+      setContactForm({ fullName: "", email: "", message: "" });
+      setContactFile(null);
+      setContactStatus({ type: "success", text: "ההודעה נשלחה בהצלחה. נחזור אליך בהקדם." });
+    } catch (error) {
+      if (String(error?.message || "").includes("missing_email_config")) {
+        setContactStatus({
+          type: "error",
+          text: "השליחה לא מוגדרת עדיין. יש להגדיר EmailJS בסביבת הפרויקט.",
+        });
+      } else {
+        setContactStatus({ type: "error", text: "שליחת ההודעה נכשלה. נסה שוב בעוד רגע." });
+      }
+    } finally {
+      setSendingContact(false);
+    }
+  };
 
   return (
     <div dir="rtl" className="relative min-h-screen overflow-hidden bg-[#F0F7F4] text-[#2D5A4A]">
@@ -179,13 +241,72 @@ export default function Dashboard() {
           </section>
 
           <section className="landing-fade-in mt-16 rounded-3xl bg-[#2D5A4A] p-8 md:p-12" id="contact">
-            <div className="grid grid-cols-2 gap-8 text-center md:grid-cols-4">
-              {stats.map((item) => (
-                <div key={item.label}>
-                  <div className="mb-2 text-3xl font-bold text-white md:text-4xl">{item.value}</div>
-                  <div className="text-[#A8D5BA]">{item.label}</div>
-                </div>
-              ))}
+            <div className="grid gap-8 lg:grid-cols-[1.1fr_1fr] lg:items-start">
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-3">צור קשר</h2>
+                <p className="text-[#D7EEE5] text-sm mb-5">יש לך שאלה, רעיון או פידבק? שלחו הודעה ישירות למייל: {receiverEmail}</p>
+
+                <form onSubmit={handleContactSubmit} className="space-y-3">
+                  <input
+                    type="text"
+                    value={contactForm.fullName}
+                    onChange={(event) => handleContactChange("fullName", event.target.value)}
+                    className="w-full rounded-2xl border border-[#A8D5BA66] bg-white/95 px-4 py-3 text-sm text-[#2D5A4A] placeholder:text-[#6B9B8A] focus:outline-none focus:ring-2 focus:ring-[#A8D5BA]"
+                    placeholder="שם מלא"
+                  />
+                  <input
+                    type="email"
+                    value={contactForm.email}
+                    onChange={(event) => handleContactChange("email", event.target.value)}
+                    className="w-full rounded-2xl border border-[#A8D5BA66] bg-white/95 px-4 py-3 text-sm text-[#2D5A4A] placeholder:text-[#6B9B8A] focus:outline-none focus:ring-2 focus:ring-[#A8D5BA]"
+                    placeholder="אימייל לחזרה"
+                  />
+                  <textarea
+                    value={contactForm.message}
+                    onChange={(event) => handleContactChange("message", event.target.value)}
+                    rows={4}
+                    className="w-full rounded-2xl border border-[#A8D5BA66] bg-white/95 px-4 py-3 text-sm text-[#2D5A4A] placeholder:text-[#6B9B8A] focus:outline-none focus:ring-2 focus:ring-[#A8D5BA]"
+                    placeholder="איך אפשר לעזור?"
+                  />
+                  <div>
+                    <label className="block text-xs text-[#D7EEE5] mb-1">קובץ מצורף (אופציונלי)</label>
+                    <input
+                      type="file"
+                      onChange={(event) => {
+                        setContactStatus({ type: "", text: "" });
+                        setContactFile(event.target.files?.[0] || null);
+                      }}
+                      className="w-full rounded-2xl border border-[#A8D5BA66] bg-white/95 px-3 py-2 text-sm text-[#2D5A4A] file:mr-2 file:rounded-lg file:border-0 file:bg-[#E8927C] file:px-3 file:py-1.5 file:text-white"
+                    />
+                    <p className="text-[11px] text-[#D7EEE5] mt-1">מקסימום 10MB. מתאים למסמכים ותמונות.</p>
+                    {contactFile && (
+                      <p className="text-xs text-[#CBE8DD] mt-1">נבחר: {contactFile.name}</p>
+                    )}
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={sendingContact}
+                    className="rounded-2xl bg-[#E8927C] px-5 py-3 text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-60"
+                  >
+                    {sendingContact ? "שולח..." : "שליחה"}
+                  </button>
+                </form>
+
+                {contactStatus.text && (
+                  <p className={`mt-3 text-sm ${contactStatus.type === "success" ? "text-[#C9F9D8]" : "text-[#FFD4CC]"}`}>
+                    {contactStatus.text}
+                  </p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 text-center md:grid-cols-2">
+                {stats.map((item) => (
+                  <div key={item.label} className="rounded-2xl border border-[#A8D5BA33] bg-[#376959]/60 p-4">
+                    <div className="mb-1 text-2xl font-bold text-white md:text-3xl">{item.value}</div>
+                    <div className="text-[#CBE8DD] text-sm">{item.label}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
         </div>

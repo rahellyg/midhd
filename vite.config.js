@@ -57,19 +57,10 @@ export default defineConfig(({ command }) => {
         },
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-          runtimeCaching: [
-            {
-              urlPattern: /^https:\/\/.*/i,
-              handler: 'CacheFirst',
-              options: {
-                cacheName: 'remote-assets',
-                expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 30 }
-              }
-            }
-          ]
+          runtimeCaching: []
         },
         devOptions: {
-          enabled: true
+          enabled: false
         }
       })
     ]
