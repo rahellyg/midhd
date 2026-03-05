@@ -28,9 +28,32 @@ export default function Focus() {
     setSessions(updated);
   };
 
+  const handleStepToggle = async (stepIndex) => {
+    if (!activeTask) return;
+
+    const updatedSteps = (activeTask.steps || []).map((step, index) => (
+      index === stepIndex ? { ...step, done: !step.done } : step
+    ));
+
+    await api.entities.Task.update(activeTask.id, { steps: updatedSteps });
+
+    setTasks((prevTasks) => prevTasks.map((task) => (
+      task.id === activeTask.id ? { ...task, steps: updatedSteps } : task
+    )));
+
+    setSelectedTask((prev) => {
+      if (!prev || prev.id !== activeTask.id) return prev;
+      return { ...prev, steps: updatedSteps };
+    });
+  };
+
   const todayStr = new Date().toISOString().split("T")[0];
   const todaySessions = sessions.filter(s => s.session_date === todayStr && s.completed);
   const totalMinutes = todaySessions.reduce((sum, s) => sum + (s.duration_minutes || 0), 0);
+  const activeTask = selectedTask ? tasks.find(t => t.id === selectedTask.id) || selectedTask : null;
+  const totalSteps = activeTask?.steps?.length || 0;
+  const doneSteps = activeTask?.steps?.filter(step => step.done).length || 0;
+  const stepProgress = totalSteps > 0 ? Math.round((doneSteps / totalSteps) * 100) : 0;
 
   const adhd_tips = [
     "📵 שים את הטלפון הפוך ורחוק ממך",
@@ -97,6 +120,47 @@ export default function Focus() {
       <div className="glass rounded-3xl p-6 mb-5">
         <PomodoroTimer onSessionComplete={handleSessionComplete} />
       </div>
+
+      {/* Active task progress */}
+      {activeTask && (
+        <div className="glass rounded-3xl p-5 mb-5">
+          <p className="text-xs font-semibold text-indigo-600 mb-1">משימה פעילה עכשיו</p>
+          <h3 className="font-bold text-slate-800 text-base mb-3">{activeTask.title}</h3>
+
+          <div className="flex items-center justify-between text-sm mb-2">
+            <p className="text-slate-600">התקדמות שלבים</p>
+            <p className="font-semibold text-slate-700">{doneSteps}/{totalSteps}</p>
+          </div>
+
+          <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden mb-3">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-lime-500 transition-all duration-500"
+              style={{ width: `${stepProgress}%` }}
+            />
+          </div>
+
+          {totalSteps > 0 ? (
+            <div className="space-y-1.5">
+              {activeTask.steps.slice(0, 4).map((step, index) => (
+                <button
+                  type="button"
+                  key={`${activeTask.id}-step-${index}`}
+                  onClick={() => handleStepToggle(index)}
+                  className="w-full text-right text-sm text-slate-600 flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-slate-100/70 transition-colors"
+                >
+                  <span>{step.done ? "✅" : "▫️"}</span>
+                  <span className={step.done ? "line-through opacity-70" : ""}>{step.text}</span>
+                </button>
+              ))}
+              {totalSteps > 4 && (
+                <p className="text-xs text-slate-500">+{totalSteps - 4} שלבים נוספים</p>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500">אין עדיין שלבים מוגדרים למשימה הזאת.</p>
+          )}
+        </div>
+      )}
 
       {/* Completion celebration */}
       {justCompleted && (

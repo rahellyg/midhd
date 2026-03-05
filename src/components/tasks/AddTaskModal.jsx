@@ -6,6 +6,7 @@ export default function AddTaskModal({ onClose, onSave }) {
   const [form, setForm] = useState({
     title: "",
     description: "",
+    status: "todo",
     priority: "medium",
     energy_level: "medium",
     estimated_minutes: 25,

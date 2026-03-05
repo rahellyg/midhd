@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CalendarCheck2, Save, Sparkles } from 'lucide-react';
 import BottomNav from '@/components/layout/BottomNav';
+import { api } from '@/api/apiClient';
 
 const STORAGE_KEY = 'midhd_daily_checkin_v1';
 
@@ -33,11 +34,30 @@ export default function DailyCheckIn() {
   const [entries, setEntries] = useState({});
   const [form, setForm] = useState(emptyEntry());
   const [saved, setSaved] = useState(false);
+  const [todayTasks, setTodayTasks] = useState([]);
+  const [tasksLoading, setTasksLoading] = useState(true);
 
   useEffect(() => {
     const loaded = loadEntries();
     setEntries(loaded);
     setForm(loaded[todayKey] || emptyEntry());
+  }, [todayKey]);
+
+  useEffect(() => {
+    const loadTodayTasks = async () => {
+      setTasksLoading(true);
+      try {
+        const data = await api.entities['Task'].list('-created_date', 100);
+        const filtered = data.filter((task) => task.scheduled_date === todayKey);
+        setTodayTasks(filtered);
+      } catch {
+        setTodayTasks([]);
+      } finally {
+        setTasksLoading(false);
+      }
+    };
+
+    loadTodayTasks();
   }, [todayKey]);
 
   const recentEntries = useMemo(() => {
@@ -90,11 +110,34 @@ export default function DailyCheckIn() {
 
           <div>
             <label className="block text-xs text-slate-500 mb-1">איזה משימות יש לי היום?</label>
+            <div className="mb-2 bg-white/70 border border-slate-200 rounded-2xl p-3">
+              <p className="text-xs font-semibold text-slate-600 mb-1">נמשכו אוטומטית מהמשימות להיום</p>
+              {tasksLoading ? (
+                <p className="text-xs text-slate-500">טוען משימות...</p>
+              ) : todayTasks.length === 0 ? (
+                <p className="text-xs text-slate-500">לא הוגדרו משימות לתאריך של היום.</p>
+              ) : (
+                <div className="space-y-1">
+                  {todayTasks.slice(0, 5).map((task) => {
+                    const isDone = task.status === 'done';
+                    return (
+                      <div key={task.id} className="text-sm text-slate-700 flex items-center gap-2">
+                        <span>{isDone ? '✅' : '📌'}</span>
+                        <span className={isDone ? 'line-through opacity-70' : ''}>{task.title}</span>
+                      </div>
+                    );
+                  })}
+                  {todayTasks.length > 5 && (
+                    <p className="text-xs text-slate-500">+{todayTasks.length - 5} משימות נוספות</p>
+                  )}
+                </div>
+              )}
+            </div>
             <textarea
               value={form.tasksToday}
               onChange={(event) => handleChange('tasksToday', event.target.value)}
               className="w-full min-h-20 bg-white/80 rounded-2xl border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-              placeholder="3 משימות חשובות להיום..."
+              placeholder="אפשר לכתוב ידנית, בנוסף למשימות שנמשכו אוטומטית מעל"
             />
           </div>
 
@@ -167,9 +210,14 @@ export default function DailyCheckIn() {
             {recentEntries.map(([date, item]) => (
               <div key={date} className="bg-white/70 rounded-2xl px-3 py-2 border border-slate-100">
                 <p className="text-xs text-slate-500 mb-1">{date}</p>
-                <p className="text-sm text-slate-700 line-clamp-2">
-                  <strong>גאווה:</strong> {item.proudYesterday || 'לא מולא'}
-                </p>
+                <div className="space-y-1.5 text-sm text-slate-700">
+                  <p><strong>איך קמתי:</strong> {item.wakeMood || 'לא מולא'}</p>
+                  <p><strong>משימות להיום:</strong> {item.tasksToday || 'לא מולא'}</p>
+                  <p><strong>במה אני גאה:</strong> {item.proudYesterday || 'לא מולא'}</p>
+                  <p><strong>האתגר עכשיו:</strong> {item.challengeNow || 'לא מולא'}</p>
+                  <p><strong>תמיכה נדרשת:</strong> {item.supportNeed || 'לא מולא'}</p>
+                  <p><strong>צעד קטן:</strong> {item.oneSmallStep || 'לא מולא'}</p>
+                </div>
               </div>
             ))}
           </div>

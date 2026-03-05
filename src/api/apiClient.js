@@ -31,7 +31,8 @@ const LOCAL_AUTH_USERS_KEY = 'midhd_local_auth_users_v1';
 const createLocalDb = () => ({
   Task: [],
   FocusSession: [],
-  UserProfile: []
+  UserProfile: [],
+  AuthEvent: []
 });
 
 const readLocalDb = () => {
@@ -47,10 +48,25 @@ const readLocalDb = () => {
     return {
       Task: Array.isArray(parsed?.Task) ? parsed.Task : [],
       FocusSession: Array.isArray(parsed?.FocusSession) ? parsed.FocusSession : [],
-      UserProfile: Array.isArray(parsed?.UserProfile) ? parsed.UserProfile : []
+      UserProfile: Array.isArray(parsed?.UserProfile) ? parsed.UserProfile : [],
+      AuthEvent: Array.isArray(parsed?.AuthEvent) ? parsed.AuthEvent : []
     };
   } catch {
     return createLocalDb();
+  }
+};
+
+const logAuthEvent = async ({ eventType, user, provider = 'unknown' }) => {
+  try {
+    await api.entities['AuthEvent'].create({
+      event_type: eventType,
+      user_email: user?.email || null,
+      user_name: user?.full_name || null,
+      provider,
+      event_time: new Date().toISOString()
+    });
+  } catch {
+    // Auth event tracking must never block login flow.
   }
 };
 
@@ -411,7 +427,9 @@ export const api = {
         writeLocalAuthUsers([...users, newUser]);
 
         const { password: _ignoredPassword, ...safeUser } = newUser;
-        return setLocalAuthSession(safeUser);
+        const sessionUser = setLocalAuthSession(safeUser);
+        await logAuthEvent({ eventType: 'signup', user: sessionUser, provider: 'email' });
+        return sessionUser;
       }
 
       if (!existingUser) {
@@ -423,7 +441,9 @@ export const api = {
       }
 
       const { password: _ignoredPassword, ...safeUser } = existingUser;
-      return setLocalAuthSession(safeUser);
+      const sessionUser = setLocalAuthSession(safeUser);
+      await logAuthEvent({ eventType: 'login', user: sessionUser, provider: 'email' });
+      return sessionUser;
     },
     signInWithGoogle: async () => {
       if (isApiConfigured) {
@@ -437,7 +457,9 @@ export const api = {
         role: 'user',
         provider: 'google'
       };
-      return setLocalAuthSession(user);
+      const sessionUser = setLocalAuthSession(user);
+      await logAuthEvent({ eventType: 'login', user: sessionUser, provider: 'google' });
+      return sessionUser;
     },
     signInWithGoogleCredential: async (credentialToken) => {
       const profile = decodeJwtPayload(credentialToken);
@@ -448,7 +470,9 @@ export const api = {
         role: 'user',
         provider: 'google'
       };
-      return setLocalAuthSession(user);
+      const sessionUser = setLocalAuthSession(user);
+      await logAuthEvent({ eventType: 'login', user: sessionUser, provider: 'google' });
+      return sessionUser;
     },
     logout: (fromUrl) => {
       clearAuthStorage();

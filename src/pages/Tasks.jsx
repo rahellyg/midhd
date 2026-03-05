@@ -1,9 +1,19 @@
 import { useState, useEffect } from "react";
 import { api } from "@/api/apiClient";
-import { Plus, Filter } from "lucide-react";
+import { Plus, Bell, BellOff } from "lucide-react";
 import TaskCard from "../components/tasks/TaskCard";
 import AddTaskModal from "../components/tasks/AddTaskModal";
 import BottomNav from "../components/layout/BottomNav";
+import {
+  getNotificationPermission,
+  getNotificationSettings,
+  getTodayPendingTasks,
+  isNotificationsSupported,
+  markNotifiedToday,
+  requestNotificationPermission,
+  sendTodayTasksNotification,
+  updateNotificationSettings,
+} from "@/lib/dailyTaskNotifications";
 
 const filters = [
   { key: "all", label: "הכל" },
@@ -25,6 +35,11 @@ export default function Tasks() {
   const [energyFilter, setEnergyFilter] = useState("all");
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [notificationsSupported, setNotificationsSupported] = useState(false);
+  const [notificationPermission, setNotificationPermission] = useState("default");
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [notificationTime, setNotificationTime] = useState("09:00");
+  const [notificationMessage, setNotificationMessage] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -35,8 +50,67 @@ export default function Tasks() {
 
   useEffect(() => { load(); }, []);
 
+  useEffect(() => {
+    const supported = isNotificationsSupported();
+    setNotificationsSupported(supported);
+    if (!supported) {
+      return;
+    }
+
+    const settings = getNotificationSettings();
+    setNotificationsEnabled(Boolean(settings.enabled));
+    setNotificationTime(settings.time || "09:00");
+    setNotificationPermission(getNotificationPermission());
+  }, []);
+
+  const handleEnableNotifications = async () => {
+    if (!notificationsSupported) {
+      setNotificationMessage("הדפדפן לא תומך בהתראות.");
+      return;
+    }
+
+    const permission = await requestNotificationPermission();
+    setNotificationPermission(permission);
+
+    if (permission !== "granted") {
+      setNotificationsEnabled(false);
+      updateNotificationSettings({ enabled: false });
+      setNotificationMessage("נדרש לאשר התראות בדפדפן כדי לקבל תזכורות.");
+      return;
+    }
+
+    setNotificationsEnabled(true);
+    updateNotificationSettings({ enabled: true, time: notificationTime });
+    setNotificationMessage("התזכורת היומית הופעלה בהצלחה.");
+  };
+
+  const handleDisableNotifications = () => {
+    setNotificationsEnabled(false);
+    updateNotificationSettings({ enabled: false });
+    setNotificationMessage("התזכורת היומית בוטלה.");
+  };
+
+  const handleTimeChange = (event) => {
+    const nextTime = event.target.value;
+    setNotificationTime(nextTime);
+    updateNotificationSettings({ time: nextTime });
+  };
+
+  const handleSendTestNotification = async () => {
+    setNotificationMessage("");
+    const pending = getTodayPendingTasks(tasks);
+    const result = await sendTodayTasksNotification(pending);
+    if (!result.sent) {
+      setNotificationMessage("לא נשלח. אשר/י הרשאת התראות ונסה/י שוב.");
+      return;
+    }
+    markNotifiedToday();
+    setNotificationMessage("נשלחה תזכורת עם המשימות להיום.");
+  };
+
   const filtered = tasks.filter(t => {
-    const sMatch = statusFilter === "all" || t.status === statusFilter;
+    const normalizedStatus = t.status || "todo";
+    const sMatch = statusFilter === "all" || normalizedStatus === statusFilter;
     const eMatch = energyFilter === "all" || t.energy_level === energyFilter;
     return sMatch && eMatch;
   });
@@ -58,6 +132,60 @@ export default function Tasks() {
         >
           <Plus size={24} />
         </button>
+      </div>
+
+      <div className="glass rounded-3xl p-4 mb-5">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div>
+            <p className="text-sm font-semibold text-slate-700">תזכורת יומית למשימות</p>
+            <p className="text-xs text-slate-500">Push לטלפון/דפדפן עם משימות להיום</p>
+          </div>
+          {notificationsEnabled ? (
+            <button
+              type="button"
+              onClick={handleDisableNotifications}
+              className="px-3 py-2 rounded-xl bg-slate-100 text-slate-700 text-sm font-medium flex items-center gap-1.5"
+            >
+              <BellOff size={16} /> בטל
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleEnableNotifications}
+              className="px-3 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium flex items-center gap-1.5"
+            >
+              <Bell size={16} /> הפעל
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-end">
+          <label className="text-xs text-slate-500">
+            שעה לתזכורת
+            <input
+              type="time"
+              value={notificationTime}
+              onChange={handleTimeChange}
+              className="mt-1 w-full bg-white/80 rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+            />
+          </label>
+
+          <button
+            type="button"
+            onClick={handleSendTestNotification}
+            className="h-10 px-3 rounded-xl bg-emerald-600 text-white text-sm font-medium"
+          >
+            שלח בדיקה
+          </button>
+        </div>
+
+        <p className="mt-2 text-xs text-slate-500">הרשאה: {notificationPermission}</p>
+        {!notificationsSupported && (
+          <p className="mt-2 text-xs text-red-600">הדפדפן הנוכחי לא תומך בהתראות.</p>
+        )}
+        {notificationMessage && (
+          <p className="mt-2 text-xs text-indigo-700">{notificationMessage}</p>
+        )}
       </div>
 
       {/* Status filter */}

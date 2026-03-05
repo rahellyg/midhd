@@ -173,8 +173,8 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
     
     if (shouldRedirect) {
-      // Use the SDK's logout method which handles token cleanup and redirect
-      api.auth.logout(window.location.href);
+      // Redirect to Home after sign-out.
+      api.auth.logout('/');
     } else {
       // Just remove the token without redirect
       api.auth.logout();
