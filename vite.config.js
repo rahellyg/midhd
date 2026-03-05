@@ -10,7 +10,11 @@ export default defineConfig(({ command }) => {
 
   return {
     base: appBase,
-    logLevel: 'error', // Suppress warnings, only show errors
+    logLevel: isDevServer ? 'info' : 'error', // Show URL when running dev
+    server: {
+      host: '127.0.0.1', // Avoid Windows localhost/IPv6 hang
+      port: 5173
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src')
