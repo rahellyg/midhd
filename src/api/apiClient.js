@@ -445,7 +445,7 @@ export const api = {
 
         const { password: _ignoredPassword, ...safeUser } = newUser;
         const sessionUser = setLocalAuthSession(safeUser);
-        await logAuthEvent({ eventType: 'signup', user: sessionUser, provider: 'email' });
+        void logAuthEvent({ eventType: 'signup', user: sessionUser, provider: 'email' }).catch(() => {});
         return sessionUser;
       }
 
@@ -459,7 +459,7 @@ export const api = {
 
       const { password: _ignoredPassword, ...safeUser } = existingUser;
       const sessionUser = setLocalAuthSession(safeUser);
-      await logAuthEvent({ eventType: 'login', user: sessionUser, provider: 'email' });
+      void logAuthEvent({ eventType: 'login', user: sessionUser, provider: 'email' }).catch(() => {});
       return sessionUser;
     },
     signInWithGoogle: async () => {
@@ -476,7 +476,7 @@ export const api = {
         provider: 'google'
       };
       const sessionUser = setLocalAuthSession(user);
-      await logAuthEvent({ eventType: 'login', user: sessionUser, provider: 'google' });
+      void logAuthEvent({ eventType: 'login', user: sessionUser, provider: 'google' }).catch(() => {});
       return sessionUser;
     },
     signInWithGoogleCredential: async (credentialToken) => {
@@ -490,7 +490,7 @@ export const api = {
         provider: 'google'
       };
       const sessionUser = setLocalAuthSession(user);
-      await logAuthEvent({ eventType: 'login', user: sessionUser, provider: 'google' });
+      void logAuthEvent({ eventType: 'login', user: sessionUser, provider: 'google' }).catch(() => {});
       return sessionUser;
     },
     logout: (fromUrl) => {
