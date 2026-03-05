@@ -107,15 +107,15 @@ export const sendTodayTasksNotification = async (pendingTasks) => {
       if (registration?.showNotification) {
         await registration.showNotification(title, {
           body,
-          icon: '/app-icon.svg',
-          badge: '/app-icon.svg',
+          icon: `${import.meta.env.BASE_URL}app-icon.svg`,
+          badge: `${import.meta.env.BASE_URL}app-icon.svg`,
           tag: 'midhd-daily-tasks',
         });
         return { sent: true };
       }
     }
 
-    new Notification(title, { body, icon: '/app-icon.svg', tag: 'midhd-daily-tasks' });
+    new Notification(title, { body, icon: `${import.meta.env.BASE_URL}app-icon.svg`, tag: 'midhd-daily-tasks' });
     return { sent: true };
   } catch {
     return { sent: false, reason: 'error' };

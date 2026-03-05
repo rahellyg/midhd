@@ -29,14 +29,18 @@ export default function AddTaskModal({ onClose, onSave }) {
 
   const handleSave = async () => {
     if (!form.title.trim()) return;
-    await api.entities.Task.create({ ...form, user_email: user?.email || null });
-    onSave?.();
+    try {
+      await api.entities.Task.create({ ...form, user_email: user?.email || null });
+      onSave?.();
+    } catch (err) {
+      console.error('Failed to save task:', err);
+    }
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 backdrop-blur-sm p-4">
-      <div className="glass rounded-3xl w-full max-w-lg p-6 mb-4 max-h-[85vh] overflow-y-auto scrollbar-hide">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 backdrop-blur-sm p-4 pb-24">
+      <div className="glass rounded-3xl w-full max-w-lg p-6 max-h-[80vh] overflow-y-auto scrollbar-hide">
         <div className="flex justify-between items-center mb-5">
           <h2 className="text-xl font-bold text-slate-800">משימה חדשה</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-700">
