@@ -427,33 +427,32 @@ export const api = {
       const name = fullName?.trim() || normalizedEmail.split('@')[0];
 
       if (mode === 'subscribe') {
-        if (existingUser) {
-          throw new ApiError('המשתמש כבר קיים. אפשר להתחבר עם אימייל וסיסמה.', 409, null);
-        }
-
-        // Add user to Firebase (UserProfile collection)
-        let createdUser = null;
-        if (isFirebaseConfigured) {
-          createdUser = await api.entities['UserProfile'].create({
-            user_email: normalizedEmail,
-            full_name: name,
-            birth_date: birthDate || null,
-            role: 'user',
-            provider: 'email',
-            // You may add more fields as needed
-          });
-        } else {
+        // Register user in Firebase Authentication only
+        if (!isFirebaseConfigured) {
           throw new ApiError('Firebase is not configured. Cannot register user.', 503, null);
         }
-
-        // Set session user (without password)
+        const { auth } = await import('@/lib/firebase');
+        const { createUserWithEmailAndPassword, updateProfile } = await import('firebase/auth');
+        let userCredential;
+        try {
+          userCredential = await createUserWithEmailAndPassword(auth, normalizedEmail, normalizedPassword);
+        } catch (err) {
+          if (err.code === 'auth/email-already-in-use') {
+            throw new ApiError('המשתמש כבר קיים. אפשר להתחבר עם אימייל וסיסמה.', 409, null);
+          }
+          throw new ApiError(err.message || 'Registration failed', 400, null);
+        }
+        // Optionally set display name
+        if (userCredential && userCredential.user && name) {
+          try {
+            await updateProfile(userCredential.user, { displayName: name });
+          } catch {}
+        }
         const sessionUser = {
-          id: createdUser?.id,
-          email: createdUser?.user_email,
-          full_name: createdUser?.full_name,
-          birth_date: createdUser?.birth_date,
-          role: createdUser?.role,
-          provider: createdUser?.provider,
+          id: userCredential.user.uid,
+          email: userCredential.user.email,
+          full_name: userCredential.user.displayName || name,
+          provider: 'email',
         };
         setLocalAuthSession(sessionUser);
         void logAuthEvent({ eventType: 'signup', user: sessionUser, provider: 'email' }).catch(() => {});
