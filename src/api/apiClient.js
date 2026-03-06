@@ -22,12 +22,9 @@ const normalizeBaseUrl = (url) => {
 
 const isValidAppId = Boolean(appId && appId !== 'null' && appId !== 'undefined');
 const baseUrl = normalizeBaseUrl(appBaseUrl);
-const isApiConfigured = isValidAppId && Boolean(baseUrl);
-const isBrowser = typeof window !== 'undefined';
-const isLocalHost = isBrowser
-  ? ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname)
-  : false;
-const isLocalFallbackEnabled = !isApiConfigured && (import.meta.env.DEV || isLocalHost || isFirebaseConfigured);
+// Only Firebase authentication is allowed
+const isApiConfigured = false;
+const isLocalFallbackEnabled = false;
 const appApiPath = isValidAppId ? `/api/apps/${appId}` : '/api/apps/null';
 const appApiRoot = `${baseUrl}${appApiPath}`;
 const publicApiRoot = `${baseUrl}/api/apps/public`;
@@ -77,7 +74,8 @@ const logAuthEvent = async ({ eventType, user, provider = 'unknown' }) => {
       user_email: user?.email || null,
       user_name: user?.full_name || null,
       provider,
-      event_time: new Date().toISOString()
+      event_time: new Date().toISOString(),
+      origin: 'firebase'
     });
   } catch {
     // Auth event tracking must never block login flow.
@@ -374,10 +372,9 @@ const resolveFromUrl = (fromUrl) => {
 
 export const getAppPublicSettings = async (id) => {
   if (!isApiConfigured) {
-    ensureLocalFallbackEnabled();
     return {
       id: id || 'local',
-      public_settings: { mode: 'local' }
+      public_settings: { mode: isFirebaseConfigured ? 'firebase' : 'local' }
     };
   }
   return apiRequest({
@@ -405,79 +402,43 @@ export const api = {
       });
     },
     signInWithEmail: async ({ email, fullName, birthDate, password, mode = 'login' }) => {
-      if (isApiConfigured) {
-        api.auth.redirectToLogin(window.location.href);
-        return null;
+      if (!isFirebaseConfigured) {
+        throw new ApiError('Firebase is not configured. Cannot login.', 503, null);
       }
-      ensureLocalFallbackEnabled();
-
       const normalizedEmail = String(email || '').trim().toLowerCase();
       const normalizedPassword = String(password || '');
-
       if (!normalizedEmail || !normalizedEmail.includes('@')) {
         throw new ApiError('נא להזין כתובת אימייל תקינה.', 400, null);
       }
-
       if (!normalizedPassword || normalizedPassword.length < 4) {
         throw new ApiError('הסיסמה חייבת להכיל לפחות 4 תווים.', 400, null);
       }
-
-      const users = readLocalAuthUsers();
-      const existingUser = users.find((item) => item.email === normalizedEmail);
-      const name = fullName?.trim() || normalizedEmail.split('@')[0];
-
-      if (mode === 'subscribe') {
-        if (existingUser) {
-          throw new ApiError('המשתמש כבר קיים. אפשר להתחבר עם אימייל וסיסמה.', 409, null);
+      const { auth } = await import('@/lib/firebase');
+      const { signInWithEmailAndPassword } = await import('firebase/auth');
+      let userCredential;
+      try {
+        userCredential = await signInWithEmailAndPassword(auth, normalizedEmail, normalizedPassword);
+      } catch (err) {
+        if (err.code === 'auth/user-not-found') {
+          throw new ApiError('לא נמצא חשבון עם האימייל הזה. בצעו הרשמה קודם.', 404, null);
         }
-
-        const newUser = {
-          id: createLocalId(),
-          email: normalizedEmail,
-          full_name: name,
-          birth_date: birthDate || null,
-          role: 'user',
-          provider: 'email',
-          password: normalizedPassword,
-        };
-
-        writeLocalAuthUsers([...users, newUser]);
-
-        const { password: _ignoredPassword, ...safeUser } = newUser;
-        const sessionUser = setLocalAuthSession(safeUser);
-        void logAuthEvent({ eventType: 'signup', user: sessionUser, provider: 'email' }).catch(() => {});
-        return sessionUser;
+        if (err.code === 'auth/wrong-password') {
+          throw new ApiError('סיסמה שגויה.', 401, null);
+        }
+        throw new ApiError(err.message || 'Login failed', 400, null);
       }
-
-      if (!existingUser) {
-        throw new ApiError('לא נמצא חשבון עם האימייל הזה. בצעו הרשמה קודם.', 404, null);
-      }
-
-      if (existingUser.password !== normalizedPassword) {
-        throw new ApiError('סיסמה שגויה.', 401, null);
-      }
-
-      const { password: _ignoredPassword, ...safeUser } = existingUser;
-      const sessionUser = setLocalAuthSession(safeUser);
+      const sessionUser = {
+        id: userCredential.user.uid,
+        email: userCredential.user.email,
+        full_name: userCredential.user.displayName || userCredential.user.email,
+        provider: 'email',
+      };
+      setLocalAuthSession(sessionUser);
       void logAuthEvent({ eventType: 'login', user: sessionUser, provider: 'email' }).catch(() => {});
       return sessionUser;
     },
     signInWithGoogle: async () => {
-      if (isApiConfigured) {
-        api.auth.redirectToLogin(window.location.href);
-        return null;
-      }
-      ensureLocalFallbackEnabled();
-      const user = {
-        id: createLocalId(),
-        email: 'demo.google@midhd.dev',
-        full_name: 'Google Demo User',
-        role: 'user',
-        provider: 'google'
-      };
-      const sessionUser = setLocalAuthSession(user);
-      void logAuthEvent({ eventType: 'login', user: sessionUser, provider: 'google' }).catch(() => {});
-      return sessionUser;
+      throw new ApiError('Google sign-in is not implemented for Firebase-only mode.', 501, null);
     },
     signInWithGoogleCredential: async (credentialToken) => {
       ensureLocalFallbackEnabled();
@@ -500,19 +461,7 @@ export const api = {
       }
     },
     redirectToLogin: (fromUrl) => {
-      if (!isApiConfigured) {
-        return;
-      }
-      if (typeof window === 'undefined') {
-        return;
-      }
-      const returnTo = encodeURIComponent(resolveFromUrl(fromUrl));
-      if (appBaseUrl) {
-        const appIdParam = isValidAppId ? `&app_id=${encodeURIComponent(appId)}` : '';
-        window.location.href = `${normalizeBaseUrl(appBaseUrl)}/auth/login?from_url=${returnTo}${appIdParam}`;
-        return;
-      }
-      window.location.href = `/auth/login?from_url=${returnTo}`;
+      throw new Error('redirectToLogin is not available in Firebase-only mode.');
     }
   },
   entities: new Proxy(
@@ -522,9 +471,7 @@ export const api = {
         if (isFirebaseConfigured) {
           return firestoreEntityApi(String(entityName));
         }
-        if (isApiConfigured) {
-          return entityApi(String(entityName));
-        }
+        // Only Firebase authentication is allowed; no API entity fallback
         if (isLocalFallbackEnabled) {
           return localEntityApi(String(entityName));
         }

@@ -2,9 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { CalendarCheck2, Save, Sparkles } from 'lucide-react';
 import BottomNav from '@/components/layout/BottomNav';
 import { api } from '@/api/apiClient';
-import { useAuth } from '@/lib/AuthContext';
 
-const COLLECTION = 'DailyCheckIn';
+const STORAGE_KEY = 'midhd_daily_checkin_v1';
 
 const getTodayKey = () => new Date().toISOString().split('T')[0];
 
@@ -17,39 +16,32 @@ const emptyEntry = () => ({
   oneSmallStep: ''
 });
 
-
-const loadEntriesFromFirestore = async (userEmail) => {
-  if (!userEmail) return {};
-  const entries = await api.entities[COLLECTION].filter({ user_email: userEmail });
-  // Map by date for easy access
-  const mapped = {};
-  entries.forEach(entry => {
-    mapped[entry.date] = entry;
-  });
-  return mapped;
+const loadEntries = () => {
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      return {};
+    }
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
 };
-
 
 export default function DailyCheckIn() {
   const todayKey = getTodayKey();
-  const { user } = useAuth();
-  const userEmail = user?.email;
   const [entries, setEntries] = useState({});
   const [form, setForm] = useState(emptyEntry());
   const [saved, setSaved] = useState(false);
   const [todayTasks, setTodayTasks] = useState([]);
   const [tasksLoading, setTasksLoading] = useState(true);
-  const [loadingEntries, setLoadingEntries] = useState(true);
 
   useEffect(() => {
-    if (!userEmail) return;
-    setLoadingEntries(true);
-    loadEntriesFromFirestore(userEmail).then((loaded) => {
-      setEntries(loaded);
-      setForm(loaded[todayKey] || emptyEntry());
-      setLoadingEntries(false);
-    });
-  }, [todayKey, userEmail]);
+    const loaded = loadEntries();
+    setEntries(loaded);
+    setForm(loaded[todayKey] || emptyEntry());
+  }, [todayKey]);
 
   useEffect(() => {
     const loadTodayTasks = async () => {
@@ -79,31 +71,18 @@ export default function DailyCheckIn() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSave = async () => {
-    if (!userEmail) return;
-    const payload = {
-      ...form,
-      user_email: userEmail,
-      date: todayKey,
-      updatedAt: new Date().toISOString(),
+  const handleSave = () => {
+    const next = {
+      ...entries,
+      [todayKey]: {
+        ...form,
+        updatedAt: new Date().toISOString()
+      }
     };
-    // Upsert: check if entry exists for today, update or create
-    const existing = entries[todayKey];
-    if (existing && existing.id) {
-      await api.entities[COLLECTION].update(existing.id, payload);
-    } else {
-      await api.entities[COLLECTION].create(payload);
-    }
-    // Reload entries
-    const loaded = await loadEntriesFromFirestore(userEmail);
-    setEntries(loaded);
-    setForm(loaded[todayKey] || emptyEntry());
+    setEntries(next);
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     setSaved(true);
   };
-
-  if (loadingEntries) {
-    return <div className="min-h-screen flex items-center justify-center text-slate-500">טוען נתונים...</div>;
-  }
 
   return (
     <div className="min-h-screen pb-28 px-4 pt-8 max-w-lg mx-auto">

@@ -1,10 +1,12 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { MessageCircleQuestion, Send, Users, MessageSquareReply } from "lucide-react";
 import BottomNav from "@/components/layout/BottomNav";
 import { useAuth } from "@/lib/AuthContext";
-import { api } from "@/api/apiClient";
 
-const MODERATION_REPORT_EMAIL = "rahelly23@gmail.com";
+const FORUM_STORAGE_KEY = "midhd_forum_threads_v1";
+const FORUM_REPORTS_STORAGE_KEY = "midhd_forum_reports_v1";
+const FORUM_BLOCKED_USERS_STORAGE_KEY = "midhd_forum_blocked_users_v1";
+const MODERATION_REPORT_EMAIL = "raisayaish@gmail.com";
 const MODERATION_REPORT_WEBHOOK = import.meta.env.VITE_MODERATION_REPORT_WEBHOOK || "";
 
 const INAPPROPRIATE_PATTERNS = [
@@ -46,9 +48,51 @@ const createId = () => {
   return `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 };
 
+const readThreads = () => {
+  if (typeof window === "undefined") {
+    return [];
+  }
+  try {
+    const raw = window.localStorage.getItem(FORUM_STORAGE_KEY);
+    if (!raw) {
+      return [];
+    }
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
 
+const readList = (key) => {
+  if (typeof window === "undefined") {
+    return [];
+  }
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) {
+      return [];
+    }
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
 
+const writeList = (key, value) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.setItem(key, JSON.stringify(value));
+};
 
+const writeThreads = (threads) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.setItem(FORUM_STORAGE_KEY, JSON.stringify(threads));
+};
 
 const detectInappropriateTerms = (text) => {
   const normalized = normalizeText(text);
@@ -128,10 +172,10 @@ const formatDate = (isoDate) => {
 
 export default function Forum() {
   const { user } = useAuth();
-  const [threads, setThreads] = useState([]);
+  const [threads, setThreads] = useState(() => readThreads());
   const [questionText, setQuestionText] = useState("");
   const [answerInputs, setAnswerInputs] = useState({});
-  const [blockedUsers, setBlockedUsers] = useState([]); // TODO: migrate moderation to Firestore if needed
+  const [blockedUsers, setBlockedUsers] = useState(() => readList(FORUM_BLOCKED_USERS_STORAGE_KEY));
   const [moderationMessage, setModerationMessage] = useState("");
 
   const currentUserId = useMemo(() => createUserIdentifier(user), [user]);
@@ -191,17 +235,21 @@ export default function Forum() {
       return;
     }
 
-    // Firestore create
-    await api.entities["ForumThreads"].create({
-      question: trimmed,
-      author: getDisplayName(user),
-      createdAt: getNowIso(),
-      answers: [],
-    });
+    const next = [
+      ...threads,
+      {
+        id: createId(),
+        question: trimmed,
+        author: getDisplayName(user),
+        createdAt: getNowIso(),
+        answers: [],
+      },
+    ];
+
+    writeThreads(next);
+    setThreads(next);
     setQuestionText("");
     setModerationMessage("");
-    // Reload threads
-    loadThreads();
   };
 
   const submitAnswer = async (threadId) => {
@@ -226,35 +274,29 @@ export default function Forum() {
       return;
     }
 
-    // Find thread, append answer, update in Firestore
-    const thread = threads.find((t) => t.id === threadId);
-    if (!thread) return;
-    const updatedAnswers = [
-      ...(thread.answers || []),
-      {
-        id: createId(),
-        text: trimmed,
-        author: getDisplayName(user),
-        createdAt: getNowIso(),
-      },
-    ];
-    await api.entities["ForumThreads"].update(threadId, { answers: updatedAnswers });
+    const next = threads.map((thread) => {
+      if (thread.id !== threadId) {
+        return thread;
+      }
+      return {
+        ...thread,
+        answers: [
+          ...(thread.answers || []),
+          {
+            id: createId(),
+            text: trimmed,
+            author: getDisplayName(user),
+            createdAt: getNowIso(),
+          },
+        ],
+      };
+    });
+
+    writeThreads(next);
+    setThreads(next);
     setAnswerInputs((prev) => ({ ...prev, [threadId]: "" }));
     setModerationMessage("");
-    // Reload threads
-    loadThreads();
   };
-  // Load threads from Firestore
-  const loadThreads = async () => {
-    const allThreads = await api.entities["ForumThreads"].list("-createdAt", 100);
-    setThreads(allThreads || []);
-  };
-
-  useEffect(() => {
-    loadThreads();
-    // Optionally, add polling or a snapshot listener for real-time updates
-    // eslint-disable-next-line
-  }, []);
 
   return (
     <div className="min-h-screen pb-28 px-4 pt-8 max-w-2xl mx-auto">
