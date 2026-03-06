@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { MessageCircleQuestion, Send, Users, MessageSquareReply } from "lucide-react";
 import BottomNav from "@/components/layout/BottomNav";
 import { useAuth } from "@/lib/AuthContext";
@@ -192,7 +192,7 @@ export default function Forum() {
     if (!isFirebaseConfigured) return;
     try {
       setThreadsLoading(true);
-      const list = await api.entities.ForumThread.list("-created_date", 200);
+      const list = await api.entities.ForumThreads.list("-created_date", 200);
       setThreads(list.map(docToThread));
     } catch (e) {
       console.error("Forum load failed:", e);
@@ -268,7 +268,7 @@ export default function Forum() {
 
     if (isFirebaseConfigured) {
       try {
-        await api.entities.ForumThread.create({
+        await api.entities.ForumThreads.create({
           question: trimmed,
           author: getDisplayName(user),
           user_email: user?.email || null,
@@ -333,7 +333,7 @@ export default function Forum() {
         createdAt: getNowIso(),
       };
       try {
-        await api.entities.ForumThread.update(threadId, {
+        await api.entities.ForumThreads.update(threadId, {
           answers: [...(thread.answers || []), newAnswer],
         });
         await loadThreadsFromFirestore();
