@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { api, getAppPublicSettings } from '@/api/apiClient';
+import { api, getAppPublicSettings, isLocalFallbackEnabled } from '@/api/apiClient';
 import { appParams } from '@/lib/app-params';
 import { sendRegistrationAlertEmail } from '@/lib/contactEmail';
 
