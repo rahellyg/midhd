@@ -373,9 +373,6 @@ const resolveFromUrl = (fromUrl) => {
 export const getAppPublicSettings = async (id) => {
   // Only Firebase authentication is allowed, so this fallback is removed
   throw new Error('Non-Firebase authentication is disabled.');
-    path: `${publicApiRoot}/prod/public-settings/by-id/${id}`,
-    includeAuth: true
-  });
 };
 
 export const api = {
