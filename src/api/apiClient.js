@@ -413,28 +413,49 @@ export const api = {
       if (!normalizedPassword || normalizedPassword.length < 4) {
         throw new ApiError('הסיסמה חייבת להכיל לפחות 4 תווים.', 400, null);
       }
+      const name = (fullName && fullName.trim()) || normalizedEmail.split('@')[0];
       const { auth } = await import('@/lib/firebase');
-      const { signInWithEmailAndPassword } = await import('firebase/auth');
+      const { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } = await import('firebase/auth');
       let userCredential;
       try {
-        userCredential = await signInWithEmailAndPassword(auth, normalizedEmail, normalizedPassword);
+        if (mode === 'subscribe') {
+          userCredential = await createUserWithEmailAndPassword(auth, normalizedEmail, normalizedPassword);
+          if (name) {
+            await updateProfile(userCredential.user, { displayName: name });
+          }
+        } else {
+          userCredential = await signInWithEmailAndPassword(auth, normalizedEmail, normalizedPassword);
+        }
       } catch (err) {
+        if (err.code === 'auth/email-already-in-use') {
+          throw new ApiError('המשתמש כבר קיים. אפשר להתחבר עם אימייל וסיסמה.', 409, null);
+        }
         if (err.code === 'auth/user-not-found') {
           throw new ApiError('לא נמצא חשבון עם האימייל הזה. בצעו הרשמה קודם.', 404, null);
         }
         if (err.code === 'auth/wrong-password') {
           throw new ApiError('סיסמה שגויה.', 401, null);
         }
-        throw new ApiError(err.message || 'Login failed', 400, null);
+        if (err.code === 'auth/invalid-credential' || err.code === 'auth/invalid-email') {
+          throw new ApiError(err.message || 'פרטי התחברות לא תקינים.', 400, null);
+        }
+        if (err.code === 'auth/operation-not-allowed') {
+          throw new ApiError('התחברות באימייל אינה מופעלת בפרויקט. הפעל Email/Password ב-Firebase Console.', 503, null);
+        }
+        throw new ApiError(err.message || 'ההתחברות נכשלה. נסה שוב.', 400, null);
       }
       const sessionUser = {
         id: userCredential.user.uid,
         email: userCredential.user.email,
-        full_name: userCredential.user.displayName || userCredential.user.email,
+        full_name: userCredential.user.displayName || userCredential.user.email || name,
         provider: 'email',
       };
       setLocalAuthSession(sessionUser);
-      void logAuthEvent({ eventType: 'login', user: sessionUser, provider: 'email' }).catch(() => {});
+      void logAuthEvent({
+        eventType: mode === 'subscribe' ? 'signup' : 'login',
+        user: sessionUser,
+        provider: 'email',
+      }).catch(() => {});
       return sessionUser;
     },
     signInWithGoogle: async () => {
