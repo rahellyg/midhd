@@ -2,6 +2,10 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { defineConfig } from 'vite'
 import path from 'node:path'
+import { createRequire } from 'node:module'
+
+const require = createRequire(import.meta.url)
+const pkg = require('./package.json')
 
 // https://vite.dev/config/
 export default defineConfig(({ command }) => {
@@ -10,6 +14,9 @@ export default defineConfig(({ command }) => {
 
   return {
     base: appBase,
+    define: {
+      __APP_VERSION__: JSON.stringify(pkg.version || '0.0.0'),
+    },
     logLevel: isDevServer ? 'info' : 'error', // Show URL when running dev
     server: {
       host: '127.0.0.1', // Avoid Windows localhost/IPv6 hang
