@@ -8,6 +8,9 @@ export default defineConfig(({ command }) => {
   const isDevServer = command === 'serve';
   const appBase = isDevServer ? '/' : '/midhd/';
 
+  // Read version from package.json
+  const { version } = require('./package.json');
+
   return {
     base: appBase,
     logLevel: isDevServer ? 'info' : 'error', // Show URL when running dev
@@ -19,6 +22,9 @@ export default defineConfig(({ command }) => {
       alias: {
         '@': path.resolve(__dirname, './src')
       }
+    },
+    define: {
+      'import.meta.env.VITE_APP_VERSION': JSON.stringify(version),
     },
     plugins: [
       react(),

@@ -155,9 +155,13 @@ export default function Dashboard() {
 
       <nav className="relative z-10 px-6 py-4">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src={`${import.meta.env.BASE_URL}app-icon.svg`} alt="Midhd logo" className="h-10 w-10 rounded-xl" />
-            <span className="text-xl font-bold">Midhd</span>
+
+          <div className="flex flex-col items-start gap-0.5">
+            <div className="flex items-center gap-3">
+              <img src={`${import.meta.env.BASE_URL}app-icon.svg`} alt="Midhd logo" className="h-10 w-10 rounded-xl" />
+              <span className="text-xl font-bold">Midhd</span>
+            </div>
+            <span className="text-xs text-[#6B9B8A] mt-0.5">גרסה: {import.meta.env.VITE_APP_VERSION || "0.0.0"}</span>
           </div>
 
           <div className="hidden items-center gap-8 md:flex">
