@@ -2,11 +2,12 @@ import { useMemo, useState } from "react";
 import { MessageCircleQuestion, Send, Users, MessageSquareReply } from "lucide-react";
 import BottomNav from "@/components/layout/BottomNav";
 import { useAuth } from "@/lib/AuthContext";
+import { api, isFirebaseConfigured } from "@/api/apiClient";
 
 const FORUM_STORAGE_KEY = "midhd_forum_threads_v1";
 const FORUM_REPORTS_STORAGE_KEY = "midhd_forum_reports_v1";
 const FORUM_BLOCKED_USERS_STORAGE_KEY = "midhd_forum_blocked_users_v1";
-const MODERATION_REPORT_EMAIL = "raisayaish@gmail.com";
+const MODERATION_REPORT_EMAIL = "rahelly23@gmail.com";
 const MODERATION_REPORT_WEBHOOK = import.meta.env.VITE_MODERATION_REPORT_WEBHOOK || "";
 
 const INAPPROPRIATE_PATTERNS = [
@@ -94,6 +95,14 @@ const writeThreads = (threads) => {
   window.localStorage.setItem(FORUM_STORAGE_KEY, JSON.stringify(threads));
 };
 
+const docToThread = (doc) => ({
+  id: doc.id,
+  question: doc.question || "",
+  author: doc.author || "אנונימי",
+  createdAt: doc.created_date || doc.createdAt || new Date().toISOString(),
+  answers: Array.isArray(doc.answers) ? doc.answers : [],
+});
+
 const detectInappropriateTerms = (text) => {
   const normalized = normalizeText(text);
   if (!normalized) {
@@ -172,11 +181,33 @@ const formatDate = (isoDate) => {
 
 export default function Forum() {
   const { user } = useAuth();
-  const [threads, setThreads] = useState(() => readThreads());
+  const [threads, setThreads] = useState(() => (isFirebaseConfigured ? [] : readThreads()));
+  const [threadsLoading, setThreadsLoading] = useState(isFirebaseConfigured);
   const [questionText, setQuestionText] = useState("");
   const [answerInputs, setAnswerInputs] = useState({});
   const [blockedUsers, setBlockedUsers] = useState(() => readList(FORUM_BLOCKED_USERS_STORAGE_KEY));
   const [moderationMessage, setModerationMessage] = useState("");
+
+  const loadThreadsFromFirestore = async () => {
+    if (!isFirebaseConfigured) return;
+    try {
+      setThreadsLoading(true);
+      const list = await api.entities.ForumThread.list("-created_date", 200);
+      setThreads(list.map(docToThread));
+    } catch (e) {
+      console.error("Forum load failed:", e);
+      setThreads([]);
+    } finally {
+      setThreadsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isFirebaseConfigured) {
+      loadThreadsFromFirestore();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once when Firebase is configured
+  }, [isFirebaseConfigured]);
 
   const currentUserId = useMemo(() => createUserIdentifier(user), [user]);
   const isCurrentUserBlocked = useMemo(() => blockedUsers.includes(currentUserId), [blockedUsers, currentUserId]);
@@ -235,6 +266,24 @@ export default function Forum() {
       return;
     }
 
+    if (isFirebaseConfigured) {
+      try {
+        await api.entities.ForumThread.create({
+          question: trimmed,
+          author: getDisplayName(user),
+          user_email: user?.email || null,
+          answers: [],
+        });
+        await loadThreadsFromFirestore();
+        setQuestionText("");
+        setModerationMessage("");
+      } catch (e) {
+        console.error("Forum create failed:", e);
+        setModerationMessage("שמירת השאלה נכשלה. נסה שוב.");
+      }
+      return;
+    }
+
     const next = [
       ...threads,
       {
@@ -271,6 +320,29 @@ export default function Forum() {
         matchedTerms,
       });
       setAnswerInputs((prev) => ({ ...prev, [threadId]: "" }));
+      return;
+    }
+
+    if (isFirebaseConfigured) {
+      const thread = threads.find((t) => t.id === threadId);
+      if (!thread) return;
+      const newAnswer = {
+        id: createId(),
+        text: trimmed,
+        author: getDisplayName(user),
+        createdAt: getNowIso(),
+      };
+      try {
+        await api.entities.ForumThread.update(threadId, {
+          answers: [...(thread.answers || []), newAnswer],
+        });
+        await loadThreadsFromFirestore();
+        setAnswerInputs((prev) => ({ ...prev, [threadId]: "" }));
+        setModerationMessage("");
+      } catch (e) {
+        console.error("Forum answer failed:", e);
+        setModerationMessage("שמירת התשובה נכשלה. נסה שוב.");
+      }
       return;
     }
 
@@ -347,7 +419,11 @@ export default function Forum() {
         </div>
       </section>
 
-      {sortedThreads.length === 0 ? (
+      {threadsLoading ? (
+        <div className="glass rounded-3xl p-8 text-center">
+          <p className="font-semibold text-slate-700">טוען פורום...</p>
+        </div>
+      ) : sortedThreads.length === 0 ? (
         <div className="glass rounded-3xl p-8 text-center">
           <Users className="mx-auto text-slate-400 mb-3" size={36} />
           <p className="font-semibold text-slate-700">עדיין אין שאלות בפורום</p>
