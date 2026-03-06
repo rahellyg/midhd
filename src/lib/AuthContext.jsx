@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { api, getAppPublicSettings, isApiConfigured, isLocalFallbackEnabled } from '@/api/apiClient';
+import { api, getAppPublicSettings } from '@/api/apiClient';
 import { appParams } from '@/lib/app-params';
 import { sendRegistrationAlertEmail } from '@/lib/contactEmail';
 
@@ -96,9 +96,7 @@ export const AuthProvider = ({ children }) => {
       setIsLoadingAuth(true);
       const currentUser = await api.auth.me();
 
-      if (isApiConfigured) {
-        await trackCloudAuthEvent(currentUser);
-      }
+      // Only Firebase authentication is allowed; no cloud event tracking
 
       setUser(currentUser);
       setIsAuthenticated(true);
@@ -114,12 +112,7 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(false);
       
       // If user auth fails, it might be an expired token
-      if (isApiConfigured && (error.status === 401 || error.status === 403)) {
-        setAuthError({
-          type: 'auth_required',
-          message: 'Authentication required'
-        });
-      }
+      // Only Firebase authentication is allowed; no cloud error handling
     }
   };
 
@@ -142,7 +135,8 @@ export const AuthProvider = ({ children }) => {
         user_email: email,
         user_name: currentUser?.full_name || currentUser?.name || null,
         provider: currentUser?.provider === 'google' ? 'google' : 'email',
-        event_time: new Date().toISOString()
+        event_time: new Date().toISOString(),
+        origin: 'cloud'
       });
 
       if (eventType === 'signup') {
