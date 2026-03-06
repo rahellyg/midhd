@@ -431,20 +431,31 @@ export const api = {
           throw new ApiError('המשתמש כבר קיים. אפשר להתחבר עם אימייל וסיסמה.', 409, null);
         }
 
-        const newUser = {
-          id: createLocalId(),
-          email: normalizedEmail,
-          full_name: name,
-          birth_date: birthDate || null,
-          role: 'user',
-          provider: 'email',
-          password: normalizedPassword,
+        // Add user to Firebase (UserProfile collection)
+        let createdUser = null;
+        if (isFirebaseConfigured) {
+          createdUser = await api.entities.UserProfile.create({
+            user_email: normalizedEmail,
+            full_name: name,
+            birth_date: birthDate || null,
+            role: 'user',
+            provider: 'email',
+            // You may add more fields as needed
+          });
+        } else {
+          throw new ApiError('Firebase is not configured. Cannot register user.', 503, null);
+        }
+
+        // Set session user (without password)
+        const sessionUser = {
+          id: createdUser?.id,
+          email: createdUser?.user_email,
+          full_name: createdUser?.full_name,
+          birth_date: createdUser?.birth_date,
+          role: createdUser?.role,
+          provider: createdUser?.provider,
         };
-
-        writeLocalAuthUsers([...users, newUser]);
-
-        const { password: _ignoredPassword, ...safeUser } = newUser;
-        const sessionUser = setLocalAuthSession(safeUser);
+        setLocalAuthSession(sessionUser);
         void logAuthEvent({ eventType: 'signup', user: sessionUser, provider: 'email' }).catch(() => {});
         return sessionUser;
       }
