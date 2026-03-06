@@ -22,9 +22,9 @@ const normalizeBaseUrl = (url) => {
 
 const isValidAppId = Boolean(appId && appId !== 'null' && appId !== 'undefined');
 const baseUrl = normalizeBaseUrl(appBaseUrl);
-// Only Firebase authentication is allowed
+// Only Firebase authentication is allowed (no backend API)
 const isApiConfigured = false;
-const isLocalFallbackEnabled = false;
+const isLocalFallbackEnabled = isFirebaseConfigured;
 const appApiPath = isValidAppId ? `/api/apps/${appId}` : '/api/apps/null';
 const appApiRoot = `${baseUrl}${appApiPath}`;
 const publicApiRoot = `${baseUrl}/api/apps/public`;
