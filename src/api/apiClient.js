@@ -434,7 +434,7 @@ export const api = {
         // Add user to Firebase (UserProfile collection)
         let createdUser = null;
         if (isFirebaseConfigured) {
-          createdUser = await api.entities.UserProfile.create({
+          createdUser = await (api.entities as any).UserProfile.create({
             user_email: normalizedEmail,
             full_name: name,
             birth_date: birthDate || null,
