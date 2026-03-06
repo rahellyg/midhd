@@ -2,9 +2,8 @@ import { useMemo, useState, useEffect } from "react";
 import { MessageCircleQuestion, Send, Users, MessageSquareReply } from "lucide-react";
 import BottomNav from "@/components/layout/BottomNav";
 import { useAuth } from "@/lib/AuthContext";
-import { api, isFirebaseConfigured } from "@/api/apiClient";
+import { api } from "@/api/apiClient";
 
-const FORUM_STORAGE_KEY = "midhd_forum_threads_v1";
 const FORUM_REPORTS_STORAGE_KEY = "midhd_forum_reports_v1";
 const FORUM_BLOCKED_USERS_STORAGE_KEY = "midhd_forum_blocked_users_v1";
 const MODERATION_REPORT_EMAIL = "rahelly23@gmail.com";
@@ -49,22 +48,6 @@ const createId = () => {
   return `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 };
 
-const readThreads = () => {
-  if (typeof window === "undefined") {
-    return [];
-  }
-  try {
-    const raw = window.localStorage.getItem(FORUM_STORAGE_KEY);
-    if (!raw) {
-      return [];
-    }
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-};
-
 const readList = (key) => {
   if (typeof window === "undefined") {
     return [];
@@ -86,13 +69,6 @@ const writeList = (key, value) => {
     return;
   }
   window.localStorage.setItem(key, JSON.stringify(value));
-};
-
-const writeThreads = (threads) => {
-  if (typeof window === "undefined") {
-    return;
-  }
-  window.localStorage.setItem(FORUM_STORAGE_KEY, JSON.stringify(threads));
 };
 
 const docToThread = (doc) => ({
@@ -181,18 +157,17 @@ const formatDate = (isoDate) => {
 
 export default function Forum() {
   const { user } = useAuth();
-  const [threads, setThreads] = useState(() => (isFirebaseConfigured ? [] : readThreads()));
-  const [threadsLoading, setThreadsLoading] = useState(isFirebaseConfigured);
+  const [threads, setThreads] = useState([]);
+  const [threadsLoading, setThreadsLoading] = useState(true);
   const [questionText, setQuestionText] = useState("");
   const [answerInputs, setAnswerInputs] = useState({});
   const [blockedUsers, setBlockedUsers] = useState(() => readList(FORUM_BLOCKED_USERS_STORAGE_KEY));
   const [moderationMessage, setModerationMessage] = useState("");
 
   const loadThreadsFromFirestore = async () => {
-    if (!isFirebaseConfigured) return;
     try {
       setThreadsLoading(true);
-      const list = await api.entities.ForumThreads.list("-created_date", 200);
+      const list = await api.entities.ForumThread.list("-created_date", 200);
       setThreads(list.map(docToThread));
     } catch (e) {
       console.error("Forum load failed:", e);
@@ -203,11 +178,9 @@ export default function Forum() {
   };
 
   useEffect(() => {
-    if (isFirebaseConfigured) {
-      loadThreadsFromFirestore();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once when Firebase is configured
-  }, [isFirebaseConfigured]);
+    loadThreadsFromFirestore();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once on mount
+  }, []);
 
   const currentUserId = useMemo(() => createUserIdentifier(user), [user]);
   const isCurrentUserBlocked = useMemo(() => blockedUsers.includes(currentUserId), [blockedUsers, currentUserId]);
@@ -266,39 +239,20 @@ export default function Forum() {
       return;
     }
 
-    if (isFirebaseConfigured) {
-      try {
-        await api.entities.ForumThreads.create({
-          question: trimmed,
-          author: getDisplayName(user),
-          user_email: user?.email || null,
-          answers: [],
-        });
-        await loadThreadsFromFirestore();
-        setQuestionText("");
-        setModerationMessage("");
-      } catch (e) {
-        console.error("Forum create failed:", e);
-        setModerationMessage("שמירת השאלה נכשלה. נסה שוב.");
-      }
-      return;
-    }
-
-    const next = [
-      ...threads,
-      {
-        id: createId(),
+    try {
+      await api.entities.ForumThread.create({
         question: trimmed,
         author: getDisplayName(user),
-        createdAt: getNowIso(),
+        user_email: user?.email || null,
         answers: [],
-      },
-    ];
-
-    writeThreads(next);
-    setThreads(next);
-    setQuestionText("");
-    setModerationMessage("");
+      });
+      await loadThreadsFromFirestore();
+      setQuestionText("");
+      setModerationMessage("");
+    } catch (e) {
+      console.error("Forum create failed:", e);
+      setModerationMessage("שמירת השאלה נכשלה. נסה שוב.");
+    }
   };
 
   const submitAnswer = async (threadId) => {
@@ -323,51 +277,25 @@ export default function Forum() {
       return;
     }
 
-    if (isFirebaseConfigured) {
-      const thread = threads.find((t) => t.id === threadId);
-      if (!thread) return;
-      const newAnswer = {
-        id: createId(),
-        text: trimmed,
-        author: getDisplayName(user),
-        createdAt: getNowIso(),
-      };
-      try {
-        await api.entities.ForumThreads.update(threadId, {
-          answers: [...(thread.answers || []), newAnswer],
-        });
-        await loadThreadsFromFirestore();
-        setAnswerInputs((prev) => ({ ...prev, [threadId]: "" }));
-        setModerationMessage("");
-      } catch (e) {
-        console.error("Forum answer failed:", e);
-        setModerationMessage("שמירת התשובה נכשלה. נסה שוב.");
-      }
-      return;
+    const thread = threads.find((t) => t.id === threadId);
+    if (!thread) return;
+    const newAnswer = {
+      id: createId(),
+      text: trimmed,
+      author: getDisplayName(user),
+      createdAt: getNowIso(),
+    };
+    try {
+      await api.entities.ForumThread.update(threadId, {
+        answers: [...(thread.answers || []), newAnswer],
+      });
+      await loadThreadsFromFirestore();
+      setAnswerInputs((prev) => ({ ...prev, [threadId]: "" }));
+      setModerationMessage("");
+    } catch (e) {
+      console.error("Forum answer failed:", e);
+      setModerationMessage("שמירת התשובה נכשלה. נסה שוב.");
     }
-
-    const next = threads.map((thread) => {
-      if (thread.id !== threadId) {
-        return thread;
-      }
-      return {
-        ...thread,
-        answers: [
-          ...(thread.answers || []),
-          {
-            id: createId(),
-            text: trimmed,
-            author: getDisplayName(user),
-            createdAt: getNowIso(),
-          },
-        ],
-      };
-    });
-
-    writeThreads(next);
-    setThreads(next);
-    setAnswerInputs((prev) => ({ ...prev, [threadId]: "" }));
-    setModerationMessage("");
   };
 
   return (
