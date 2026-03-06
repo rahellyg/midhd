@@ -10,7 +10,7 @@
         "lint:fix": "eslint . --fix",
         "typecheck": "tsc -p ./jsconfig.json",
         "preview": "vite preview",
-        "prebuild": "node scripts/set-version-env.js"
+        "prebuild": "node scripts/set-version-env.cjs"
     },
     "dependencies": {
         "@hello-pangea/dnd": "^17.0.0",
