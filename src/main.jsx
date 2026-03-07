@@ -1,14 +1,21 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import { registerSW } from 'virtual:pwa-register'
-import App from '@/App.jsx'
-import '@/index.css'
+
+import { toast } from '@/components/ui/use-toast'
 
 const updateSW = registerSW({
   immediate: true,
   onNeedRefresh() {
-    // Activate the new service worker and reload so users always see latest changes.
-    updateSW(true)
+    toast({
+      title: 'Update available',
+      description: 'A new version of the app is available.',
+      action: (
+        <button
+          className="ml-4 px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700"
+          onClick={() => updateSW(true)}
+        >
+          Reload
+        </button>
+      ),
+    })
   }
 })
 
