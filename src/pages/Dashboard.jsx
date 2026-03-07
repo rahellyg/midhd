@@ -160,7 +160,7 @@ export default function Dashboard() {
               <img src={`${import.meta.env.BASE_URL}app-icon.svg`} alt="Midhd logo" className="h-10 w-10 rounded-xl" />
               <span className="text-xl font-bold">Midhd</span>
             </div>
-            <span className="text-xs text-[#6B9B8A] mt-0.5">גרסה: 0.0.1</span>
+            <span className="text-xs text-[#6B9B8A] mt-0.5">גרסה: 0.0.2</span>
           </div>
 
           <div className="hidden items-center gap-8 md:flex">

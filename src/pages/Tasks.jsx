@@ -138,12 +138,22 @@ export default function Tasks() {
         </button>
       </div>
 
+
       <div className="glass rounded-3xl p-4 mb-5">
-        <div className="flex items-center justify-between gap-3 mb-3">
-          <div>
-            <p className="text-sm font-semibold text-slate-700">תזכורת יומית למשימות</p>
-            <p className="text-xs text-slate-500">Push לטלפון/דפדפן עם משימות להיום</p>
-          </div>
+        <div className="flex flex-col gap-2 mb-3">
+          <p className="text-sm font-semibold text-slate-700">תזכורת יומית למשימות</p>
+          <p className="text-xs text-slate-500">Push לטלפון/דפדפן עם משימות להיום</p>
+        </div>
+        <div className="flex flex-row flex-wrap items-end gap-2 mb-2">
+          <label className="text-xs text-slate-500 flex flex-col">
+            שעה לתזכורת
+            <input
+              type="time"
+              value={notificationTime}
+              onChange={handleTimeChange}
+              className="mt-1 w-28 bg-white/80 rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+            />
+          </label>
           {notificationsEnabled ? (
             <button
               type="button"
@@ -161,19 +171,6 @@ export default function Tasks() {
               <Bell size={16} /> הפעל
             </button>
           )}
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-end">
-          <label className="text-xs text-slate-500">
-            שעה לתזכורת
-            <input
-              type="time"
-              value={notificationTime}
-              onChange={handleTimeChange}
-              className="mt-1 w-full bg-white/80 rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-            />
-          </label>
-
           <button
             type="button"
             onClick={handleSendTestNotification}
