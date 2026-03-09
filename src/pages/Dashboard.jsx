@@ -139,13 +139,14 @@ export default function Dashboard() {
         <div className="landing-gradient-blob bottom-20 left-10 h-72 w-72 bg-[#A8D5BA] [animation-delay:-4s]" />
 
         <nav className="relative z-10 px-6 py-4">
-          <div className="mx-auto flex w-full max-w-6xl items-center justify-between">
+          <div className="mx-auto w-full max-w-6xl">
+            <div className="flex items-center justify-between">
             <div className="flex flex-col items-start gap-0.5">
               <div className="flex items-center gap-3">
                 <img src={`${import.meta.env.BASE_URL}app-icon.svg`} alt="Midhd logo" className="h-10 w-10 rounded-xl" />
                 <span className="text-xl font-bold">Midhd</span>
               </div>
-              <span className="text-xs text-[#6B9B8A] mt-0.5">{t('dashboard.version', { version: '0.0.3' })}</span>
+              <span className="text-xs text-[#6B9B8A] mt-0.5">{t('dashboard.version', { version: '0.0.4' })}</span>
             </div>
 
             <div className="hidden items-center gap-6 md:flex">
@@ -186,6 +187,10 @@ export default function Dashboard() {
                 </Link>
               </div>
             )}
+            </div>
+            <div className="mt-3 flex justify-end md:hidden">
+              <LanguageSwitcher />
+            </div>
           </div>
         </nav>
 

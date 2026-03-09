@@ -7,11 +7,8 @@
   --foreground: 58 45 30;
 }
 
-* {
-  direction: rtl;
-}
-
 body {
+  direction: inherit;
   font-family: 'Segoe UI', 'Arial', sans-serif;
   background: linear-gradient(135deg, #edf5ea 0%, #f8f2e6 52%, #e6efe2 100%);
   min-height: 100vh;

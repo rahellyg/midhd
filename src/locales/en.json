@@ -3,6 +3,7 @@
     "features": "Features",
     "about": "About",
     "contact": "Contact",
+    "contactTitle": "Contact",
     "profile": "Profile",
     "logout": "Log out",
     "login": "Log in",
@@ -15,6 +16,15 @@
     "subtitle1": "Tools, tips and support for people with ADHD.",
     "subtitle2": "Everyone deserves a chance to focus in a way that works for them.",
     "loggedInAs": "Logged in as {{userName}}",
+    "pages": {
+      "tasks": "Tasks",
+      "focus": "Focus",
+      "calm": "Calm",
+      "dopamine": "Dopamine",
+      "forum": "Forum",
+      "aihelp": "AI Help",
+      "dailycheckin": "Daily check-in"
+    },
     "installApp": "Install app",
     "iosInstallHint": "On iPhone: tap Share then \"Add to Home Screen\" to install the app.",
     "contactPrompt": "Have a question, idea or feedback? Send a message directly to: {{receiverEmail}}",
@@ -128,7 +138,21 @@
     "habitTipTitle": "Important tip",
     "habitTip": "Don't try to change everything at once! Pick one small habit and do it for a week. One small success creates a wave of change.",
     "researchTitle": "What does research say?",
-    "researchDesc": "Studies show that people with ADHD benefit from regular exercise, enough sleep, and good nutrition – sometimes as much as from medication. Small lifestyle changes can change everything."
+    "researchDesc": "Studies show that people with ADHD benefit from regular exercise, enough sleep, and good nutrition – sometimes as much as from medication. Small lifestyle changes can change everything.",
+    "tipOfDayTitle": "Tip of the day",
+    "moreTipsTitle": "More dopamine-boosting tips",
+    "tipSunTitle": "Morning sunlight",
+    "tipSunDesc": "10-15 minutes of direct daylight can raise dopamine and help set your biological clock.",
+    "tipMoveTitle": "Short movement",
+    "tipMoveDesc": "5-10 minutes of walking or light jumps can boost dopamine and motivation for hours.",
+    "tipMusicTitle": "Music you enjoy",
+    "tipMusicDesc": "Listening to enjoyable music releases dopamine and improves focus.",
+    "tipWinTitle": "Small win",
+    "tipWinDesc": "Finish one small task - your brain gets a dopamine reward and wants more.",
+    "tipWaterTitle": "Water",
+    "tipWaterDesc": "Staying hydrated supports brain function and healthy dopamine levels.",
+    "tipSocialTitle": "Social connection",
+    "tipSocialDesc": "A short conversation or a hug can raise dopamine and help you calm down."
   },
   "tasks": {
     "title": "My tasks",
@@ -170,6 +194,30 @@
     "subtitle": "Self-regulation exercises for ADHD",
     "tabBreath": "Breathing",
     "tabTips": "Tips",
+    "breathing": {
+      "exercises": {
+        "fourSevenEight": {
+          "label": "4-7-8",
+          "desc": "Deep calming"
+        },
+        "box": {
+          "label": "Box breathing",
+          "desc": "For balance and calm"
+        },
+        "calm": {
+          "label": "Steady breathing",
+          "desc": "For quick calm"
+        }
+      },
+      "phase": {
+        "inhale": "Inhale... 🌬️",
+        "hold": "Hold... 🫁",
+        "exhale": "Exhale... 💨"
+      },
+      "round": "Round {{count}}",
+      "start": "Start exercise 🌿",
+      "stop": "Stop"
+    },
     "breathIntro": "Controlled breathing activates the parasympathetic nervous system and calms within minutes",
     "emotionTitle": "Emotional regulation with ADHD",
     "emotionDesc": "People with ADHD experience emotions more intensely. It's normal and manageable. The trick is to notice the emotion early and use calming tools before it overwhelms.",
@@ -282,5 +330,9 @@
     "sentence8": "Small wins add up to big change over time.",
     "sentence9": "You're not behind, you're on your own path at your own pace.",
     "sentence10": "Pick one task now. That's all it takes to move forward."
+  },
+  "siteCredit": {
+    "createdBy": "Created by",
+    "brand": "Business Pro"
   }
 }

@@ -1,12 +1,35 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 const exercises = [
-  { id: "4-7-8", label: "4-7-8", desc: "להרגעה עמוקה", inhale: 4, hold: 7, exhale: 8 },
-  { id: "box", label: "נשימת קופסא", desc: "לאיזון ורוגע", inhale: 4, hold: 4, exhale: 4 },
-  { id: "calm", label: "נשימה רגילה", desc: "להרגעה מהירה", inhale: 4, hold: 0, exhale: 6 },
+  {
+    id: "4-7-8",
+    labelKey: "calm.breathing.exercises.fourSevenEight.label",
+    descKey: "calm.breathing.exercises.fourSevenEight.desc",
+    inhale: 4,
+    hold: 7,
+    exhale: 8,
+  },
+  {
+    id: "box",
+    labelKey: "calm.breathing.exercises.box.label",
+    descKey: "calm.breathing.exercises.box.desc",
+    inhale: 4,
+    hold: 4,
+    exhale: 4,
+  },
+  {
+    id: "calm",
+    labelKey: "calm.breathing.exercises.calm.label",
+    descKey: "calm.breathing.exercises.calm.desc",
+    inhale: 4,
+    hold: 0,
+    exhale: 6,
+  },
 ];
 
 export default function BreathingExercise() {
+  const { t } = useTranslation();
   const [selected, setSelected] = useState(exercises[0]);
   const [phase, setPhase] = useState("idle"); // idle | inhale | hold | exhale
   const [count, setCount] = useState(0);
@@ -45,7 +68,12 @@ export default function BreathingExercise() {
 
   const stop = () => { setPhase("idle"); setCount(0); };
 
-  const phaseLabel = { inhale: "שאפ... 🌬️", hold: "עצור... 🫁", exhale: "נשוף... 💨", idle: "" };
+  const phaseLabel = {
+    inhale: t("calm.breathing.phase.inhale"),
+    hold: t("calm.breathing.phase.hold"),
+    exhale: t("calm.breathing.phase.exhale"),
+    idle: "",
+  };
   const phaseColor = { inhale: "from-blue-400 to-cyan-400", hold: "from-purple-400 to-indigo-400", exhale: "from-emerald-400 to-teal-400", idle: "from-slate-200 to-slate-300" };
   const scale = phase === "inhale" ? "scale-125" : phase === "hold" ? "scale-125" : phase === "exhale" ? "scale-75" : "scale-100";
 
@@ -59,8 +87,8 @@ export default function BreathingExercise() {
             onClick={() => { setSelected(ex); stop(); }}
             className={`flex justify-between items-center px-4 py-3 rounded-2xl border transition-all ${selected.id === ex.id ? "border-indigo-300 bg-indigo-50" : "border-slate-100 bg-white/60 hover:bg-white"}`}
           >
-            <span className="font-semibold text-slate-700">{ex.label}</span>
-            <span className="text-sm text-slate-500">{ex.desc}</span>
+            <span className="font-semibold text-slate-700">{t(ex.labelKey)}</span>
+            <span className="text-sm text-slate-500">{t(ex.descKey)}</span>
           </button>
         ))}
       </div>
@@ -77,17 +105,17 @@ export default function BreathingExercise() {
       {phase !== "idle" && (
         <div className="text-center">
           <p className="text-xl font-bold text-slate-700">{phaseLabel[phase]}</p>
-          <p className="text-sm text-slate-400 mt-1">סבב {rounds + 1}</p>
+          <p className="text-sm text-slate-400 mt-1">{t("calm.breathing.round", { count: rounds + 1 })}</p>
         </div>
       )}
 
       {phase === "idle" ? (
         <button onClick={start} className="btn-primary text-white font-semibold rounded-2xl px-10 py-3">
-          התחל תרגיל 🌿
+          {t("calm.breathing.start")}
         </button>
       ) : (
         <button onClick={stop} className="bg-white/80 text-slate-600 font-semibold rounded-2xl px-10 py-3 border border-slate-200 hover:bg-slate-50 transition-all">
-          עצור
+          {t("calm.breathing.stop")}
         </button>
       )}
     </div>
