@@ -6,13 +6,25 @@ import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import { toast } from '@/components/ui/use-toast'
 
+const getBasePath = () => {
+  const configuredBase = String(import.meta.env.BASE_URL || '/').trim();
+  const withLeadingSlash = configuredBase.startsWith('/') ? configuredBase : `/${configuredBase}`;
+  return withLeadingSlash.endsWith('/') ? withLeadingSlash : `${withLeadingSlash}/`;
+};
+
 const normalizePushPath = (rawPath) => {
   try {
+    const basePath = getBasePath();
     const url = new URL(String(rawPath || '/'), window.location.origin);
-    url.pathname = url.pathname.replace(/\/Task\/?$/i, '/Tasks');
-    return `${url.pathname}${url.search}${url.hash}`;
+    let pathname = url.pathname.replace(/\/Task\/?$/i, '/Tasks');
+    if (!pathname.startsWith(basePath)) {
+      const trimmedPath = pathname.replace(/^\/+/, '');
+      pathname = basePath === '/' ? `/${trimmedPath}` : `${basePath}${trimmedPath}`;
+    }
+    pathname = pathname.replace(/\/+/g, '/');
+    return `${pathname}${url.search}${url.hash}`;
   } catch {
-    return import.meta.env.BASE_URL || '/';
+    return getBasePath();
   }
 };
 
