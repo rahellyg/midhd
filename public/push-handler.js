@@ -29,6 +29,21 @@ self.addEventListener('push', (event) => {
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
+self.normalizeNotificationDestination = (targetUrl) => {
+  const destination = new URL(targetUrl || '/', self.location.origin);
+  destination.pathname = destination.pathname.replace(/\/Task\/?$/i, '/Tasks');
+  return destination;
+};
+
+self.getScopeBasePath = () => {
+  try {
+    const scope = new URL(self.registration.scope);
+    return scope.pathname.endsWith('/') ? scope.pathname : `${scope.pathname}/`;
+  } catch {
+    return '/';
+  }
+};
+
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
@@ -36,27 +51,25 @@ self.addEventListener('notificationclick', (event) => {
 
   event.waitUntil((async () => {
     const allClients = await clients.matchAll({ type: 'window', includeUncontrolled: true });
-    const destination = new URL(targetUrl, self.location.origin).href;
+    const destination = self.normalizeNotificationDestination(targetUrl);
+    const destinationPath = `${destination.pathname}${destination.search}${destination.hash}`;
 
     for (const client of allClients) {
-      if (client.url === destination && 'focus' in client) {
-        return client.focus();
+      const clientUrl = new URL(client.url);
+      if (clientUrl.origin === destination.origin && 'focus' in client) {
+        await client.focus();
+        client.postMessage({
+          type: 'OPEN_PUSH_URL',
+          url: destinationPath,
+        });
+        return;
       }
-    }
-
-    if (allClients.length > 0 && 'focus' in allClients[0]) {
-      try {
-        if ('navigate' in allClients[0]) {
-          await allClients[0].navigate(destination);
-        }
-      } catch {
-        // Ignore navigation errors and still focus existing client.
-      }
-      return allClients[0].focus();
     }
 
     if (clients.openWindow) {
-      return clients.openWindow(destination);
+      const basePath = self.getScopeBasePath();
+      const openPath = `${basePath}?open=${encodeURIComponent(destinationPath)}`;
+      return clients.openWindow(openPath);
     }
 
     return undefined;

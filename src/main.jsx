@@ -6,7 +6,48 @@ import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import { toast } from '@/components/ui/use-toast'
 
+const normalizePushPath = (rawPath) => {
+  try {
+    const url = new URL(String(rawPath || '/'), window.location.origin);
+    url.pathname = url.pathname.replace(/\/Task\/?$/i, '/Tasks');
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return import.meta.env.BASE_URL || '/';
+  }
+};
+
+const navigateWithinSpa = (targetPath) => {
+  const nextPath = normalizePushPath(targetPath);
+  const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  if (currentPath === nextPath) {
+    return;
+  }
+  window.history.pushState({}, '', nextPath);
+  window.dispatchEvent(new PopStateEvent('popstate'));
+};
+
+const consumePendingPushRedirect = () => {
+  const params = new URLSearchParams(window.location.search);
+  const openPath = params.get('open');
+  if (!openPath) {
+    return;
+  }
+
+  params.delete('open');
+  const cleanUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}${window.location.hash}`;
+  window.history.replaceState({}, '', cleanUrl);
+  navigateWithinSpa(openPath);
+};
+
+consumePendingPushRedirect();
+
 if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event?.data?.type === 'OPEN_PUSH_URL' && event?.data?.url) {
+      navigateWithinSpa(event.data.url);
+    }
+  });
+
   window.addEventListener('load', () => {
     // Use /sw.js in dev, /midhd/sw.js in production
     let swPath = '/sw.js';
