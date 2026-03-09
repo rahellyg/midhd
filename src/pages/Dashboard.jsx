@@ -20,25 +20,15 @@ export default function Dashboard() {
 
   const userName = user?.full_name || user?.name || user?.email || (i18n.language === 'he' ? 'הפרופיל שלי' : 'My profile');
   const receiverEmail = getContactReceiverEmail();
-  const appPages = i18n.language === 'he'
-    ? [
-        { page: "Tasks", label: "משימות" },
-        { page: "Focus", label: "פוקוס" },
-        { page: "Calm", label: "רגיעה" },
-        { page: "Dopamine", label: "דופמין" },
-        { page: "Forum", label: "פורום" },
-        { page: "AIHelp", label: "עזרת AI" },
-        { page: "DailyCheckIn", label: "שאלון יומי" },
-      ]
-    : [
-        { page: "Tasks", label: "Tasks" },
-        { page: "Focus", label: "Focus" },
-        { page: "Calm", label: "Calm" },
-        { page: "Dopamine", label: "Dopamine" },
-        { page: "Forum", label: "Forum" },
-        { page: "AIHelp", label: "AI Help" },
-        { page: "DailyCheckIn", label: "Daily check-in" },
-      ];
+  const appPages = [
+    { page: "Tasks", label: t('dashboard.pages.tasks') },
+    { page: "Focus", label: t('dashboard.pages.focus') },
+    { page: "Calm", label: t('dashboard.pages.calm') },
+    { page: "Dopamine", label: t('dashboard.pages.dopamine') },
+    { page: "Forum", label: t('dashboard.pages.forum') },
+    { page: "AIHelp", label: t('dashboard.pages.aihelp') },
+    { page: "DailyCheckIn", label: t('dashboard.pages.dailycheckin') },
+  ];
 
   const featureCards = [
     { title: t('dashboard.feature1_title'), description: t('dashboard.feature1_desc'), icon: Clock3, iconBg: "bg-[#E8927C26]", iconColor: "text-[#E8927C]" },

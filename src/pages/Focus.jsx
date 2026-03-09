@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { api } from "@/api/apiClient";
 import { useAuth } from "@/lib/AuthContext";
 import PomodoroTimer from "../components/focus/PomodoroTimer";
@@ -6,6 +7,7 @@ import BottomNav from "../components/layout/BottomNav";
 import { Trophy, Flame } from "lucide-react";
 
 export default function Focus() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [sessions, setSessions] = useState([]);
   const [selectedTask, setSelectedTask] = useState(null);
@@ -65,19 +67,13 @@ export default function Focus() {
   const doneSteps = activeTask?.steps?.filter(step => step.done).length || 0;
   const stepProgress = totalSteps > 0 ? Math.round((doneSteps / totalSteps) * 100) : 0;
 
-  const adhd_tips = [
-    "📵 שים את הטלפון הפוך ורחוק ממך",
-    "🎧 מוזיקה ללא מילים עוזרת לריכוז",
-    "🚰 שתה כוס מים לפני שמתחיל",
-    "✏️ כתוב את המשימה על נייר לפניך",
-    "🚪 הגד למישהו שאתה בפוקוס",
-  ];
+  const adhd_tips = [t("focus.tip1"), t("focus.tip2"), t("focus.tip3"), t("focus.tip4"), t("focus.tip5")];
 
   return (
     <div className="min-h-screen pb-28 px-4 pt-8 max-w-lg mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">מצב פוקוס 🎯</h1>
-        <p className="text-slate-500 text-sm">טיימר פומודורו מותאם לADHD</p>
+        <h1 className="text-2xl font-bold text-slate-800">{t("focus.title")}</h1>
+        <p className="text-slate-500 text-sm">{t("focus.subtitle")}</p>
       </div>
 
       {/* Stats */}
@@ -88,7 +84,7 @@ export default function Focus() {
           </div>
           <div>
             <p className="text-2xl font-bold text-slate-800">{todaySessions.length}</p>
-            <p className="text-xs text-slate-500">סשנים היום</p>
+            <p className="text-xs text-slate-500">{t("focus.sessionsToday")}</p>
           </div>
         </div>
         <div className="glass rounded-3xl p-4 flex items-center gap-3">
@@ -97,7 +93,7 @@ export default function Focus() {
           </div>
           <div>
             <p className="text-2xl font-bold text-slate-800">{totalMinutes}</p>
-            <p className="text-xs text-slate-500">דקות ריכוז</p>
+            <p className="text-xs text-slate-500">{t("focus.focusMinutes")}</p>
           </div>
         </div>
       </div>
@@ -105,21 +101,21 @@ export default function Focus() {
       {/* Task selector */}
       {tasks.length > 0 && (
         <div className="glass rounded-3xl p-4 mb-5">
-          <p className="text-sm font-semibold text-slate-600 mb-2">על מה אתה עובד?</p>
+          <p className="text-sm font-semibold text-slate-600 mb-2">{t("focus.whatWorkingOn")}</p>
           <div className="flex flex-col gap-2">
             <button
               onClick={() => setSelectedTask(null)}
               className={`text-right px-3 py-2 rounded-xl text-sm transition-all ${!selectedTask ? "bg-indigo-100 text-indigo-700 font-medium" : "bg-white/50 text-slate-600"}`}
             >
-              🎯 ללא משימה ספציפית
+              🎯 {t("focus.noSpecificTask")}
             </button>
-            {tasks.slice(0, 4).map(t => (
+            {tasks.slice(0, 4).map((task) => (
               <button
-                key={t.id}
-                onClick={() => setSelectedTask(t)}
-                className={`text-right px-3 py-2 rounded-xl text-sm transition-all ${selectedTask?.id === t.id ? "bg-indigo-100 text-indigo-700 font-medium" : "bg-white/50 text-slate-600"}`}
+                key={task.id}
+                onClick={() => setSelectedTask(task)}
+                className={`text-right px-3 py-2 rounded-xl text-sm transition-all ${selectedTask?.id === task.id ? "bg-indigo-100 text-indigo-700 font-medium" : "bg-white/50 text-slate-600"}`}
               >
-                📌 {t.title}
+                📌 {task.title}
               </button>
             ))}
           </div>
@@ -134,11 +130,11 @@ export default function Focus() {
       {/* Active task progress */}
       {activeTask && (
         <div className="glass rounded-3xl p-5 mb-5">
-          <p className="text-xs font-semibold text-indigo-600 mb-1">משימה פעילה עכשיו</p>
+          <p className="text-xs font-semibold text-indigo-600 mb-1">{t("focus.activeTaskNow")}</p>
           <h3 className="font-bold text-slate-800 text-base mb-3">{activeTask.title}</h3>
 
           <div className="flex items-center justify-between text-sm mb-2">
-            <p className="text-slate-600">התקדמות שלבים</p>
+            <p className="text-slate-600">{t("focus.stepProgress")}</p>
             <p className="font-semibold text-slate-700">{doneSteps}/{totalSteps}</p>
           </div>
 
@@ -163,11 +159,11 @@ export default function Focus() {
                 </button>
               ))}
               {totalSteps > 4 && (
-                <p className="text-xs text-slate-500">+{totalSteps - 4} שלבים נוספים</p>
+                <p className="text-xs text-slate-500">+{totalSteps - 4} {t("focus.moreSteps")}</p>
               )}
             </div>
           ) : (
-            <p className="text-sm text-slate-500">אין עדיין שלבים מוגדרים למשימה הזאת.</p>
+            <p className="text-sm text-slate-500">{t("focus.noStepsYet")}</p>
           )}
         </div>
       )}
@@ -176,14 +172,14 @@ export default function Focus() {
       {justCompleted && (
         <div className="glass rounded-3xl p-5 mb-5 bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 text-center">
           <p className="text-4xl mb-2">🎉</p>
-          <p className="font-bold text-slate-700 text-lg">כל הכבוד!</p>
-          <p className="text-slate-500 text-sm">סשן פוקוס הושלם. עכשיו קח הפסקה!</p>
+          <p className="font-bold text-slate-700 text-lg">{t("focus.wellDone")}</p>
+          <p className="text-slate-500 text-sm">{t("focus.sessionComplete")}</p>
         </div>
       )}
 
       {/* ADHD tips */}
       <div className="glass rounded-3xl p-5">
-        <h3 className="font-bold text-slate-700 mb-3">טיפים לריכוז עם ADHD</h3>
+        <h3 className="font-bold text-slate-700 mb-3">{t("focus.tipsTitle")}</h3>
         <div className="space-y-2">
           {adhd_tips.map((tip, i) => (
             <div key={i} className="bg-white/60 rounded-2xl px-4 py-2.5 text-sm text-slate-700">

@@ -1,5 +1,5 @@
-
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CalendarCheck2, Save, Sparkles } from 'lucide-react';
 import BottomNav from '@/components/layout/BottomNav';
 import { api } from '@/api/apiClient';
@@ -31,6 +31,7 @@ const loadEntriesFromFirestore = async (userEmail) => {
 
 
 export default function DailyCheckIn() {
+  const { t } = useTranslation();
   const todayKey = getTodayKey();
   const { user } = useAuth();
   const userEmail = user?.email;
@@ -102,41 +103,43 @@ export default function DailyCheckIn() {
   };
 
   if (loadingEntries) {
-    return <div className="min-h-screen flex items-center justify-center text-slate-500">טוען נתונים...</div>;
+    return <div className="min-h-screen flex items-center justify-center text-slate-500">{t("dailyCheckIn.loading")}</div>;
   }
+
+  const notFilled = t("dailyCheckIn.notFilled");
 
   return (
     <div className="min-h-screen pb-28 px-4 pt-8 max-w-lg mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">שאלון יומי</h1>
-        <p className="text-slate-500 text-sm">רפלקציה קצרה כדי להתחיל את היום בפוקוס.</p>
+        <h1 className="text-2xl font-bold text-slate-800">{t("dailyCheckIn.title")}</h1>
+        <p className="text-slate-500 text-sm">{t("dailyCheckIn.subtitle")}</p>
       </div>
 
       <div className="glass rounded-3xl p-5 mb-4">
         <div className="flex items-center gap-2 mb-4">
           <CalendarCheck2 size={18} className="text-indigo-600" />
-          <p className="text-sm font-semibold text-slate-700">איך קמתי היום? ({todayKey})</p>
+          <p className="text-sm font-semibold text-slate-700">{t("dailyCheckIn.todayQuestion", { date: todayKey })}</p>
         </div>
 
         <div className="space-y-3">
           <div>
-            <label className="block text-xs text-slate-500 mb-1">איך קמתי היום? מצב רוח ואנרגיה</label>
+            <label className="block text-xs text-slate-500 mb-1">{t("dailyCheckIn.wakeMoodLabel")}</label>
             <textarea
               value={form.wakeMood}
               onChange={(event) => handleChange('wakeMood', event.target.value)}
               className="w-full min-h-20 bg-white/80 rounded-2xl border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-              placeholder="לדוגמה: קמתי עייף אבל עם רצון להתחיל לאט..."
+              placeholder={t("dailyCheckIn.wakeMoodPlaceholder")}
             />
           </div>
 
           <div>
-            <label className="block text-xs text-slate-500 mb-1">איזה משימות יש לי היום?</label>
+            <label className="block text-xs text-slate-500 mb-1">{t("dailyCheckIn.tasksTodayLabel")}</label>
             <div className="mb-2 bg-white/70 border border-slate-200 rounded-2xl p-3">
-              <p className="text-xs font-semibold text-slate-600 mb-1">נמשכו אוטומטית מהמשימות להיום</p>
+              <p className="text-xs font-semibold text-slate-600 mb-1">{t("dailyCheckIn.tasksAuto")}</p>
               {tasksLoading ? (
-                <p className="text-xs text-slate-500">טוען משימות...</p>
+                <p className="text-xs text-slate-500">{t("dailyCheckIn.tasksLoading")}</p>
               ) : todayTasks.length === 0 ? (
-                <p className="text-xs text-slate-500">לא הוגדרו משימות לתאריך של היום.</p>
+                <p className="text-xs text-slate-500">{t("dailyCheckIn.tasksNone")}</p>
               ) : (
                 <div className="space-y-1">
                   {todayTasks.slice(0, 5).map((task) => {
@@ -149,7 +152,7 @@ export default function DailyCheckIn() {
                     );
                   })}
                   {todayTasks.length > 5 && (
-                    <p className="text-xs text-slate-500">+{todayTasks.length - 5} משימות נוספות</p>
+                    <p className="text-xs text-slate-500">+{todayTasks.length - 5} {t("dailyCheckIn.moreTasks")}</p>
                   )}
                 </div>
               )}
@@ -158,47 +161,47 @@ export default function DailyCheckIn() {
               value={form.tasksToday}
               onChange={(event) => handleChange('tasksToday', event.target.value)}
               className="w-full min-h-20 bg-white/80 rounded-2xl border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-              placeholder="אפשר לכתוב ידנית, בנוסף למשימות שנמשכו אוטומטית מעל"
+              placeholder={t("dailyCheckIn.tasksTodayTextareaPlaceholder")}
             />
           </div>
 
           <div>
-            <label className="block text-xs text-slate-500 mb-1">במה אני גאה מעצמי מאתמול?</label>
+            <label className="block text-xs text-slate-500 mb-1">{t("dailyCheckIn.proudLabel")}</label>
             <textarea
               value={form.proudYesterday}
               onChange={(event) => handleChange('proudYesterday', event.target.value)}
               className="w-full min-h-20 bg-white/80 rounded-2xl border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-              placeholder="גם הצלחה קטנה נחשבת."
+              placeholder={t("dailyCheckIn.proudPlaceholder")}
             />
           </div>
 
           <div>
-            <label className="block text-xs text-slate-500 mb-1">מה האתגר הכי גדול שלי כרגע?</label>
+            <label className="block text-xs text-slate-500 mb-1">{t("dailyCheckIn.challengeLabel")}</label>
             <input
               value={form.challengeNow}
               onChange={(event) => handleChange('challengeNow', event.target.value)}
               className="w-full bg-white/80 rounded-2xl border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-              placeholder="למשל: להתחיל את המשימה הראשונה"
+              placeholder={t("dailyCheckIn.challengePlaceholder")}
             />
           </div>
 
           <div>
-            <label className="block text-xs text-slate-500 mb-1">איזו תמיכה תעזור לי היום?</label>
+            <label className="block text-xs text-slate-500 mb-1">{t("dailyCheckIn.supportLabel")}</label>
             <input
               value={form.supportNeed}
               onChange={(event) => handleChange('supportNeed', event.target.value)}
               className="w-full bg-white/80 rounded-2xl border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-              placeholder="למשל: טיימר, הפסקות יזומות, מוזיקה"
+              placeholder={t("dailyCheckIn.supportPlaceholder")}
             />
           </div>
 
           <div>
-            <label className="block text-xs text-slate-500 mb-1">צעד קטן אחד שאני מתחייב אליו עכשיו</label>
+            <label className="block text-xs text-slate-500 mb-1">{t("dailyCheckIn.oneSmallStepLabel")}</label>
             <input
               value={form.oneSmallStep}
               onChange={(event) => handleChange('oneSmallStep', event.target.value)}
               className="w-full bg-white/80 rounded-2xl border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-              placeholder="משהו של עד 5 דקות"
+              placeholder={t("dailyCheckIn.oneSmallStepPlaceholder")}
             />
           </div>
         </div>
@@ -208,12 +211,12 @@ export default function DailyCheckIn() {
           className="mt-4 w-full rounded-2xl bg-gradient-to-r from-indigo-600 to-cyan-600 text-white py-3 font-semibold flex items-center justify-center gap-2"
         >
           <Save size={18} />
-          שמירת שאלון יומי
+          {t("dailyCheckIn.saveButton")}
         </button>
 
         {saved && (
           <p className="mt-3 text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2">
-            נשמר בהצלחה. מעולה שהשקעת בעצמך היום.
+            {t("dailyCheckIn.savedMessage")}
           </p>
         )}
       </div>
@@ -221,23 +224,23 @@ export default function DailyCheckIn() {
       <div className="glass rounded-3xl p-5">
         <div className="flex items-center gap-2 mb-3">
           <Sparkles size={18} className="text-indigo-600" />
-          <h2 className="font-bold text-slate-800">7 הימים האחרונים</h2>
+          <h2 className="font-bold text-slate-800">{t("dailyCheckIn.last7Days")}</h2>
         </div>
 
         {recentEntries.length === 0 ? (
-          <p className="text-sm text-slate-500">עדיין אין תשובות שמורות.</p>
+          <p className="text-sm text-slate-500">{t("dailyCheckIn.noEntriesYet")}</p>
         ) : (
           <div className="space-y-2">
             {recentEntries.map(([date, item]) => (
               <div key={date} className="bg-white/70 rounded-2xl px-3 py-2 border border-slate-100">
                 <p className="text-xs text-slate-500 mb-1">{date}</p>
                 <div className="space-y-1.5 text-sm text-slate-700">
-                  <p><strong>איך קמתי:</strong> {item.wakeMood || 'לא מולא'}</p>
-                  <p><strong>משימות להיום:</strong> {item.tasksToday || 'לא מולא'}</p>
-                  <p><strong>במה אני גאה:</strong> {item.proudYesterday || 'לא מולא'}</p>
-                  <p><strong>האתגר עכשיו:</strong> {item.challengeNow || 'לא מולא'}</p>
-                  <p><strong>תמיכה נדרשת:</strong> {item.supportNeed || 'לא מולא'}</p>
-                  <p><strong>צעד קטן:</strong> {item.oneSmallStep || 'לא מולא'}</p>
+                  <p><strong>{t("dailyCheckIn.wakeMoodShort")}</strong> {item.wakeMood || notFilled}</p>
+                  <p><strong>{t("dailyCheckIn.tasksTodayShort")}</strong> {item.tasksToday || notFilled}</p>
+                  <p><strong>{t("dailyCheckIn.proudShort")}</strong> {item.proudYesterday || notFilled}</p>
+                  <p><strong>{t("dailyCheckIn.challengeShort")}</strong> {item.challengeNow || notFilled}</p>
+                  <p><strong>{t("dailyCheckIn.supportShort")}</strong> {item.supportNeed || notFilled}</p>
+                  <p><strong>{t("dailyCheckIn.stepShort")}</strong> {item.oneSmallStep || notFilled}</p>
                 </div>
               </div>
             ))}

@@ -1,27 +1,27 @@
 import { createPageUrl } from "@/utils";
 import { Link, useLocation } from "react-router-dom";
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from "react-i18next";
 import { CheckSquare, Timer, Leaf, LayoutDashboard, UserCircle, Sparkles, ClipboardCheck, MessagesSquare } from "lucide-react";
 
-const navItems = [
-  { key: "Dashboard", Icon: LayoutDashboard, page: "Dashboard" },
-  { key: "Tasks", Icon: CheckSquare, page: "Tasks" },
-  { key: "Focus", Icon: Timer, page: "Focus" },
-  { key: "Calm", Icon: Leaf, page: "Calm" },
-  { key: "DailyCheckIn", Icon: ClipboardCheck, page: "DailyCheckIn" },
-  { key: "Forum", Icon: MessagesSquare, page: "Forum" },
-  { key: "AIHelp", Icon: Sparkles, page: "AIHelp" },
-  { key: "Profile", Icon: UserCircle, page: "Profile" },
+const navConfig = [
+  { labelKey: "nav.home", Icon: LayoutDashboard, page: "Dashboard" },
+  { labelKey: "nav.tasks", Icon: CheckSquare, page: "Tasks" },
+  { labelKey: "nav.focus", Icon: Timer, page: "Focus" },
+  { labelKey: "nav.calm", Icon: Leaf, page: "Calm" },
+  { labelKey: "nav.dailyCheckIn", Icon: ClipboardCheck, page: "DailyCheckIn" },
+  { labelKey: "nav.forum", Icon: MessagesSquare, page: "Forum" },
+  { labelKey: "nav.aiHelp", Icon: Sparkles, page: "AIHelp" },
+  { labelKey: "nav.profile", Icon: UserCircle, page: "Profile" },
 ];
 
 export default function BottomNav() {
-  const location = useLocation();
   const { t } = useTranslation();
+  const location = useLocation();
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-white/50 shadow-2xl">
       <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide py-2 px-2 max-w-lg mx-auto">
-        {navItems.map(({ key, Icon, page }) => {
+        {navConfig.map(({ labelKey, Icon, page }) => {
           const href = createPageUrl(page);
           const active =
             location.pathname.toLowerCase().includes(page.toLowerCase()) ||
@@ -37,7 +37,7 @@ export default function BottomNav() {
               }`}
             >
               <Icon size={20} />
-              <span className="text-xs font-medium">{t(key)}</span>
+              <span className="text-xs font-medium">{t(labelKey)}</span>
             </Link>
           );
         })}

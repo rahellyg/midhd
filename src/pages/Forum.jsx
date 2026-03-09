@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { MessageCircleQuestion, Send, Users, MessageSquareReply } from "lucide-react";
 import BottomNav from "@/components/layout/BottomNav";
 import { useAuth } from "@/lib/AuthContext";
@@ -71,13 +72,6 @@ const writeList = (key, value) => {
   window.localStorage.setItem(key, JSON.stringify(value));
 };
 
-const docToThread = (doc) => ({
-  id: doc.id,
-  question: doc.question || "",
-  author: doc.author || "אנונימי",
-  createdAt: doc.created_date || doc.createdAt || new Date().toISOString(),
-  answers: Array.isArray(doc.answers) ? doc.answers : [],
-});
 
 const detectInappropriateTerms = (text) => {
   const normalized = normalizeText(text);
@@ -131,15 +125,23 @@ const reportModerationIncident = async (report) => {
   }
 };
 
-const getDisplayName = (user) => {
+const getDisplayName = (user, t) => {
   return (
     user?.full_name ||
     user?.name ||
     user?.email ||
     user?.user_email ||
-    "משתמש/ת"
+    (t ? t("forum.userFallback") : "User")
   );
 };
+
+const docToThread = (doc, t) => ({
+  id: doc.id,
+  question: doc.question || "",
+  author: doc.author || (t ? t("forum.anonymous") : "Anonymous"),
+  createdAt: doc.created_date || doc.createdAt || new Date().toISOString(),
+  answers: Array.isArray(doc.answers) ? doc.answers : [],
+});
 
 const formatDate = (isoDate) => {
   try {
@@ -156,6 +158,7 @@ const formatDate = (isoDate) => {
 };
 
 export default function Forum() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [threads, setThreads] = useState([]);
   const [threadsLoading, setThreadsLoading] = useState(true);
@@ -168,7 +171,7 @@ export default function Forum() {
     try {
       setThreadsLoading(true);
       const list = await api.entities.ForumThread.list("-created_date", 200);
-      setThreads(list.map(docToThread));
+      setThreads(list.map((doc) => docToThread(doc, t)));
     } catch (e) {
       console.error("Forum load failed:", e);
       setThreads([]);
@@ -207,19 +210,19 @@ export default function Forum() {
       id: createId(),
       type,
       userId: currentUserId,
-      userName: getDisplayName(user),
+      userName: getDisplayName(user, t),
       content,
       matchedTerms,
       createdAt: getNowIso(),
     };
 
     await reportModerationIncident(report);
-    setModerationMessage("התוכן זוהה כלא הולם. החשבון נחסם מפרסום בפורום ודווח לצוות.");
+    setModerationMessage(t("forum.moderationReported"));
   };
 
   const submitQuestion = async () => {
     if (isCurrentUserBlocked) {
-      setModerationMessage("החשבון שלך חסום מפרסום בפורום עקב תוכן לא הולם.");
+      setModerationMessage(t("forum.moderationBlocked"));
       return;
     }
 
@@ -242,7 +245,7 @@ export default function Forum() {
     try {
       await api.entities.ForumThread.create({
         question: trimmed,
-        author: getDisplayName(user),
+        author: getDisplayName(user, t),
         user_email: user?.email || null,
         answers: [],
       });
@@ -251,13 +254,13 @@ export default function Forum() {
       setModerationMessage("");
     } catch (e) {
       console.error("Forum create failed:", e);
-      setModerationMessage("שמירת השאלה נכשלה. נסה שוב.");
+      setModerationMessage(t("forum.saveQuestionFailed"));
     }
   };
 
   const submitAnswer = async (threadId) => {
     if (isCurrentUserBlocked) {
-      setModerationMessage("החשבון שלך חסום מפרסום בפורום עקב תוכן לא הולם.");
+      setModerationMessage(t("forum.moderationBlocked"));
       return;
     }
 
@@ -282,7 +285,7 @@ export default function Forum() {
     const newAnswer = {
       id: createId(),
       text: trimmed,
-      author: getDisplayName(user),
+      author: getDisplayName(user, t),
       createdAt: getNowIso(),
     };
     try {
@@ -294,26 +297,26 @@ export default function Forum() {
       setModerationMessage("");
     } catch (e) {
       console.error("Forum answer failed:", e);
-      setModerationMessage("שמירת התשובה נכשלה. נסה שוב.");
+      setModerationMessage(t("forum.saveAnswerFailed"));
     }
   };
 
   return (
     <div className="min-h-screen pb-28 px-4 pt-8 max-w-2xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">פורום קהילה</h1>
-        <p className="text-slate-500 text-sm">שאלו שאלות, שתפו ניסיון, ותענו לאחרים.</p>
+        <h1 className="text-2xl font-bold text-slate-800">{t("forum.title")}</h1>
+        <p className="text-slate-500 text-sm">{t("forum.subtitle")}</p>
       </div>
 
       <section className="glass rounded-3xl p-5 mb-5">
         <div className="flex items-center gap-2 mb-3 text-slate-700">
           <MessageCircleQuestion size={18} className="text-indigo-500" />
-          <span className="font-semibold">שאלה חדשה</span>
+          <span className="font-semibold">{t("forum.newQuestion")}</span>
         </div>
         <textarea
           value={questionText}
           onChange={(event) => setQuestionText(event.target.value)}
-          placeholder="מה הייתם רוצים לשאול את הקהילה?"
+          placeholder={t("forum.placeholder")}
           disabled={isCurrentUserBlocked}
           className="w-full min-h-24 bg-white/85 rounded-2xl border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
         />
@@ -322,7 +325,7 @@ export default function Forum() {
           disabled={isCurrentUserBlocked}
           className="mt-3 w-full sm:w-auto rounded-2xl bg-indigo-600 text-white px-5 py-2.5 font-semibold hover:bg-indigo-700 transition-colors"
         >
-          פרסם שאלה
+          {t("forum.postQuestion")}
         </button>
         {moderationMessage && (
           <p className="mt-3 text-sm rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-red-700">
@@ -331,7 +334,7 @@ export default function Forum() {
         )}
         {isCurrentUserBlocked && (
           <p className="mt-2 text-xs text-slate-500">
-            לפרטי חסימה או ערעור ניתן לפנות אל {MODERATION_REPORT_EMAIL}
+            {t("forum.blockAppeal", { email: MODERATION_REPORT_EMAIL })}
           </p>
         )}
       </section>
@@ -339,23 +342,23 @@ export default function Forum() {
       <section className="grid grid-cols-2 gap-3 mb-5">
         <div className="glass rounded-2xl p-4 text-center">
           <p className="text-2xl font-bold text-slate-800">{sortedThreads.length}</p>
-          <p className="text-xs text-slate-500">שאלות בפורום</p>
+          <p className="text-xs text-slate-500">{t("forum.questionsCount")}</p>
         </div>
         <div className="glass rounded-2xl p-4 text-center">
           <p className="text-2xl font-bold text-slate-800">{totalAnswers}</p>
-          <p className="text-xs text-slate-500">תגובות מהקהילה</p>
+          <p className="text-xs text-slate-500">{t("forum.answersCount")}</p>
         </div>
       </section>
 
       {threadsLoading ? (
         <div className="glass rounded-3xl p-8 text-center">
-          <p className="font-semibold text-slate-700">טוען פורום...</p>
+          <p className="font-semibold text-slate-700">{t("forum.loading")}</p>
         </div>
       ) : sortedThreads.length === 0 ? (
         <div className="glass rounded-3xl p-8 text-center">
           <Users className="mx-auto text-slate-400 mb-3" size={36} />
-          <p className="font-semibold text-slate-700">עדיין אין שאלות בפורום</p>
-          <p className="text-sm text-slate-500 mt-1">תהיו הראשונים לשאול שאלה ולקבל עזרה.</p>
+          <p className="font-semibold text-slate-700">{t("forum.noQuestions")}</p>
+          <p className="text-sm text-slate-500 mt-1">{t("forum.beFirst")}</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -365,7 +368,7 @@ export default function Forum() {
                 <p className="font-semibold text-slate-800 leading-7">{thread.question}</p>
               </div>
               <p className="text-xs text-slate-500 mb-4">
-                נכתב על ידי {thread.author} • {formatDate(thread.createdAt)}
+                {t("forum.writtenBy", { author: thread.author })} • {formatDate(thread.createdAt)}
               </p>
 
               <div className="space-y-2 mb-4">
@@ -391,7 +394,7 @@ export default function Forum() {
                       [thread.id]: event.target.value,
                     }))
                   }
-                  placeholder="כתבו תשובה..."
+                  placeholder={t("forum.writeReply")}
                   disabled={isCurrentUserBlocked}
                   className="flex-1 bg-white/85 rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300"
                 />

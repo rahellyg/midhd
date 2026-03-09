@@ -3,8 +3,19 @@ import { api, getAppPublicSettings, isLocalFallbackEnabled } from '@/api/apiClie
 import { appParams } from '@/lib/app-params';
 import { sendRegistrationAlertEmail } from '@/lib/contactEmail';
 
-const AuthContext = createContext();
+const AuthContext = createContext(undefined);
 const hasValidAppId = (value) => Boolean(value && value !== 'null' && value !== 'undefined');
+
+/** When set in .env.local, skip login and use a mock user so you can browse all pages locally. */
+const skipAuthForLocalDev = () =>
+  import.meta.env.DEV && import.meta.env.VITE_SKIP_AUTH === 'true';
+
+const DEV_MOCK_USER = {
+  id: 'dev-local',
+  email: 'dev@local',
+  full_name: 'Local Dev',
+  provider: 'dev',
+};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -23,6 +34,15 @@ export const AuthProvider = ({ children }) => {
     try {
       setIsLoadingPublicSettings(true);
       setAuthError(null);
+
+      if (skipAuthForLocalDev()) {
+        setAppPublicSettings({ id: 'local', public_settings: { mode: 'local' } });
+        setUser(DEV_MOCK_USER);
+        setIsAuthenticated(true);
+        setIsLoadingAuth(false);
+        setIsLoadingPublicSettings(false);
+        return;
+      }
 
       if (!hasValidAppId(appParams.appId) && isLocalFallbackEnabled) {
         setAppPublicSettings({

@@ -370,6 +370,18 @@ const resolveFromUrl = (fromUrl) => {
   return window.location.href;
 };
 
+/**
+ * Entity API shape for type-checking. List/filter return arrays of entity objects (shape varies by entity).
+ * @typedef {{
+ *   list: (sort?: string, limit?: number) => Promise<any[]>;
+ *   filter: (criteria?: Record<string, unknown>, sort?: string, limit?: number) => Promise<any[]>;
+ *   create: (data: Record<string, unknown>) => Promise<any>;
+ *   update: (id: string, data: Record<string, unknown>) => Promise<any>;
+ *   delete: (id: string) => Promise<{ success: boolean }>;
+ * }} EntityApi
+ * @typedef {{ Task: EntityApi; FocusSession: EntityApi; ForumThread: EntityApi; DailyCheckIn: EntityApi; UserProfile: EntityApi; AuthEvent: EntityApi }} ApiEntities
+ */
+
 export const getAppPublicSettings = async (id) => {
   if (!isApiConfigured) {
     return {
@@ -485,36 +497,38 @@ export const api = {
       throw new Error('redirectToLogin is not available in Firebase-only mode.');
     }
   },
-  entities: new Proxy(
-    {},
-    {
-      get: (_target, entityName) => {
-        if (isFirebaseConfigured) {
-          return firestoreEntityApi(String(entityName));
-        }
-        // Only Firebase authentication is allowed; no API entity fallback
-        if (isLocalFallbackEnabled) {
-          return localEntityApi(String(entityName));
-        }
-        return {
-          list: async () => {
-            throw new ApiError(CLOUD_CONFIG_ERROR, 503, null);
-          },
-          filter: async () => {
-            throw new ApiError(CLOUD_CONFIG_ERROR, 503, null);
-          },
-          create: async () => {
-            throw new ApiError(CLOUD_CONFIG_ERROR, 503, null);
-          },
-          update: async () => {
-            throw new ApiError(CLOUD_CONFIG_ERROR, 503, null);
-          },
-          delete: async () => {
-            throw new ApiError(CLOUD_CONFIG_ERROR, 503, null);
+  entities: /** @type {ApiEntities} */ (
+    new Proxy(
+      {},
+      {
+        get: (_target, entityName) => {
+          if (isFirebaseConfigured) {
+            return firestoreEntityApi(String(entityName));
           }
-        };
+          // Only Firebase authentication is allowed; no API entity fallback
+          if (isLocalFallbackEnabled) {
+            return localEntityApi(String(entityName));
+          }
+          return {
+            list: async () => {
+              throw new ApiError(CLOUD_CONFIG_ERROR, 503, null);
+            },
+            filter: async () => {
+              throw new ApiError(CLOUD_CONFIG_ERROR, 503, null);
+            },
+            create: async () => {
+              throw new ApiError(CLOUD_CONFIG_ERROR, 503, null);
+            },
+            update: async () => {
+              throw new ApiError(CLOUD_CONFIG_ERROR, 503, null);
+            },
+            delete: async () => {
+              throw new ApiError(CLOUD_CONFIG_ERROR, 503, null);
+            }
+          };
+        }
       }
-    }
+    )
   )
 };
 

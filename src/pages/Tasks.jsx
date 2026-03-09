@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { api } from "@/api/apiClient";
 import { useAuth } from "@/lib/AuthContext";
 import { Plus, Bell, BellOff } from "lucide-react";
@@ -16,21 +17,11 @@ import {
   updateNotificationSettings,
 } from "@/lib/dailyTaskNotifications";
 
-const filters = [
-  { key: "all", label: "הכל" },
-  { key: "todo", label: "לביצוע" },
-  { key: "in_progress", label: "בתהליך" },
-  { key: "done", label: "הושלם" },
-];
-
-const energyFilters = [
-  { key: "all", label: "כל האנרגיה" },
-  { key: "low", label: "🌿 נמוכה" },
-  { key: "medium", label: "⚡ בינונית" },
-  { key: "high", label: "🔥 גבוהה" },
-];
+const filterKeys = ["all", "todo", "in_progress", "done"];
+const energyKeys = ["all", "low", "medium", "high"];
 
 export default function Tasks() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -69,7 +60,7 @@ export default function Tasks() {
 
   const handleEnableNotifications = async () => {
     if (!notificationsSupported) {
-      setNotificationMessage("הדפדפן לא תומך בהתראות.");
+      setNotificationMessage(t("tasks.notificationsNotSupported"));
       return;
     }
 
@@ -79,19 +70,19 @@ export default function Tasks() {
     if (permission !== "granted") {
       setNotificationsEnabled(false);
       updateNotificationSettings({ enabled: false });
-      setNotificationMessage("נדרש לאשר התראות בדפדפן כדי לקבל תזכורות.");
+      setNotificationMessage(t("tasks.notificationsPermissionRequired"));
       return;
     }
 
     setNotificationsEnabled(true);
     updateNotificationSettings({ enabled: true, time: notificationTime });
-    setNotificationMessage("התזכורת היומית הופעלה בהצלחה.");
+    setNotificationMessage(t("tasks.notificationsEnabled"));
   };
 
   const handleDisableNotifications = () => {
     setNotificationsEnabled(false);
     updateNotificationSettings({ enabled: false });
-    setNotificationMessage("התזכורת היומית בוטלה.");
+    setNotificationMessage(t("tasks.notificationsDisabled"));
   };
 
   const handleTimeChange = (event) => {
@@ -105,11 +96,11 @@ export default function Tasks() {
     const pending = getTodayPendingTasks(tasks);
     const result = await sendTodayTasksNotification(pending);
     if (!result.sent) {
-      setNotificationMessage("לא נשלח. אשר/י הרשאת התראות ונסה/י שוב.");
+      setNotificationMessage(t("tasks.testNotSent"));
       return;
     }
     markNotifiedToday();
-    setNotificationMessage("נשלחה תזכורת עם המשימות להיום.");
+    setNotificationMessage(t("tasks.testSent"));
   };
 
   const filtered = tasks.filter(t => {
@@ -123,12 +114,18 @@ export default function Tasks() {
   const todayTasks = filtered.filter(t => !t.scheduled_date || t.scheduled_date === todayStr);
   const otherTasks = filtered.filter(t => t.scheduled_date && t.scheduled_date !== todayStr);
 
+  const filterLabels = { all: "filterAll", todo: "filterTodo", in_progress: "filterInProgress", done: "filterDone" };
+  const energyLabels = { all: "energyAll", low: "energyLow", medium: "energyMedium", high: "energyHigh" };
+  const filters = filterKeys.map((key) => ({ key, label: t(`tasks.${filterLabels[key]}`) }));
+  const energyFilters = energyKeys.map((key) => ({ key, label: t(`tasks.${energyLabels[key]}`) }));
+  const activeCount = tasks.filter((task) => task.status !== "done").length;
+
   return (
     <div className="min-h-screen pb-28 px-4 pt-8 max-w-lg mx-auto">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">המשימות שלי 📋</h1>
-          <p className="text-slate-500 text-sm">{tasks.filter(t => t.status !== "done").length} משימות פעילות</p>
+          <h1 className="text-2xl font-bold text-slate-800">{t("tasks.title")} 📋</h1>
+          <p className="text-slate-500 text-sm">{t("tasks.activeCount", { count: activeCount })}</p>
         </div>
         <button
           onClick={() => setShowModal(true)}
@@ -138,29 +135,19 @@ export default function Tasks() {
         </button>
       </div>
 
-
       <div className="glass rounded-3xl p-4 mb-5">
-        <div className="flex flex-col gap-2 mb-3">
-          <p className="text-sm font-semibold text-slate-700">תזכורת יומית למשימות</p>
-          <p className="text-xs text-slate-500">Push לטלפון/דפדפן עם משימות להיום</p>
-        </div>
-        <div className="flex flex-row flex-wrap items-end gap-2 mb-2">
-          <label className="text-xs text-slate-500 flex flex-col">
-            שעה לתזכורת
-            <input
-              type="time"
-              value={notificationTime}
-              onChange={handleTimeChange}
-              className="mt-1 w-28 bg-white/80 rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-            />
-          </label>
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div>
+            <p className="text-sm font-semibold text-slate-700">{t("tasks.reminderTitle")}</p>
+            <p className="text-xs text-slate-500">{t("tasks.reminderDesc")}</p>
+          </div>
           {notificationsEnabled ? (
             <button
               type="button"
               onClick={handleDisableNotifications}
               className="px-3 py-2 rounded-xl bg-slate-100 text-slate-700 text-sm font-medium flex items-center gap-1.5"
             >
-              <BellOff size={16} /> בטל
+              <BellOff size={16} /> {t("tasks.disable")}
             </button>
           ) : (
             <button
@@ -168,21 +155,34 @@ export default function Tasks() {
               onClick={handleEnableNotifications}
               className="px-3 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium flex items-center gap-1.5"
             >
-              <Bell size={16} /> הפעל
+              <Bell size={16} /> {t("tasks.enable")}
             </button>
           )}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-end">
+          <label className="text-xs text-slate-500">
+            {t("tasks.reminderTimeLabel")}
+            <input
+              type="time"
+              value={notificationTime}
+              onChange={handleTimeChange}
+              className="mt-1 w-full bg-white/80 rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+            />
+          </label>
+
           <button
             type="button"
             onClick={handleSendTestNotification}
             className="h-10 px-3 rounded-xl bg-emerald-600 text-white text-sm font-medium"
           >
-            שלח בדיקה
+            {t("tasks.sendTest")}
           </button>
         </div>
 
-        <p className="mt-2 text-xs text-slate-500">הרשאה: {notificationPermission}</p>
+        <p className="mt-2 text-xs text-slate-500">{t("tasks.permissionLabel")}: {notificationPermission}</p>
         {!notificationsSupported && (
-          <p className="mt-2 text-xs text-red-600">הדפדפן הנוכחי לא תומך בהתראות.</p>
+          <p className="mt-2 text-xs text-red-600">{t("tasks.notificationsNotSupported")}</p>
         )}
         {notificationMessage && (
           <p className="mt-2 text-xs text-indigo-700">{notificationMessage}</p>
@@ -191,7 +191,7 @@ export default function Tasks() {
 
       {/* Status filter */}
       <div className="flex gap-2 mb-3 overflow-x-auto scrollbar-hide pb-1">
-        {filters.map(f => (
+        {filters.map((f) => (
           <button
             key={f.key}
             onClick={() => setStatusFilter(f.key)}
@@ -204,7 +204,7 @@ export default function Tasks() {
 
       {/* Energy filter */}
       <div className="flex gap-2 mb-5 overflow-x-auto scrollbar-hide pb-1">
-        {energyFilters.map(f => (
+        {energyFilters.map((f) => (
           <button
             key={f.key}
             onClick={() => setEnergyFilter(f.key)}
@@ -217,7 +217,7 @@ export default function Tasks() {
 
       {loading ? (
         <div className="space-y-3">
-          {[1, 2, 3].map(i => (
+          {[1, 2, 3].map((i) => (
             <div key={i} className="glass rounded-3xl h-24 animate-pulse" />
           ))}
         </div>
@@ -225,25 +225,25 @@ export default function Tasks() {
         <>
           {todayTasks.length > 0 && (
             <div className="mb-4">
-              <p className="text-xs font-semibold text-slate-400 mb-2 px-1">היום</p>
-              {todayTasks.map(t => (
-                <TaskCard key={t.id} task={t} onUpdate={load} onDelete={load} />
+              <p className="text-xs font-semibold text-slate-400 mb-2 px-1">{t("tasks.today")}</p>
+              {todayTasks.map((task) => (
+                <TaskCard key={task.id} task={task} onUpdate={load} onDelete={load} />
               ))}
             </div>
           )}
           {otherTasks.length > 0 && (
             <div>
-              <p className="text-xs font-semibold text-slate-400 mb-2 px-1">תאריכים אחרים</p>
-              {otherTasks.map(t => (
-                <TaskCard key={t.id} task={t} onUpdate={load} onDelete={load} />
+              <p className="text-xs font-semibold text-slate-400 mb-2 px-1">{t("tasks.otherDates")}</p>
+              {otherTasks.map((task) => (
+                <TaskCard key={task.id} task={task} onUpdate={load} onDelete={load} />
               ))}
             </div>
           )}
           {filtered.length === 0 && (
             <div className="text-center py-16">
               <p className="text-5xl mb-4">✨</p>
-              <p className="font-bold text-slate-600 text-lg">אין משימות כאן</p>
-              <p className="text-slate-400 text-sm mt-1">לחץ + כדי להוסיף משימה חדשה</p>
+              <p className="font-bold text-slate-600 text-lg">{t("tasks.noTasks")}</p>
+              <p className="text-slate-400 text-sm mt-1">{t("tasks.addPrompt")}</p>
             </div>
           )}
         </>

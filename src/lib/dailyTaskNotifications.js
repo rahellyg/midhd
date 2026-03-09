@@ -1,3 +1,5 @@
+import i18n from '@/i18n';
+
 const SETTINGS_KEY = 'midhd_daily_tasks_notifications_v1';
 
 const defaultSettings = {
@@ -79,11 +81,11 @@ export const getTodayPendingTasks = (tasks) => {
 
 const buildNotificationBody = (tasks) => {
   if (!tasks.length) {
-    return 'אין משימות פתוחות להיום. כל הכבוד.';
+    return i18n.t('dailyTasksNotification.bodyEmpty');
   }
 
   const head = tasks.slice(0, 3).map((task) => `- ${task.title}`).join('\n');
-  const tail = tasks.length > 3 ? `\n+${tasks.length - 3} נוספות` : '';
+  const tail = tasks.length > 3 ? `\n${i18n.t('dailyTasksNotification.moreTasks', { count: tasks.length - 3 })}` : '';
   return `${head}${tail}`;
 };
 
@@ -97,8 +99,8 @@ export const sendTodayTasksNotification = async (pendingTasks) => {
   }
 
   const title = pendingTasks.length
-    ? `משימות להיום (${pendingTasks.length})`
-    : 'עדכון משימות להיום';
+    ? i18n.t('dailyTasksNotification.titleWithCount', { count: pendingTasks.length })
+    : i18n.t('dailyTasksNotification.titleUpdate');
   const body = buildNotificationBody(pendingTasks);
 
   try {
