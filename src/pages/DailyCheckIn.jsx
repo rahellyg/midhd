@@ -54,9 +54,15 @@ export default function DailyCheckIn() {
 
   useEffect(() => {
     const loadTodayTasks = async () => {
+      if (!userEmail) {
+        setTodayTasks([]);
+        setTasksLoading(false);
+        return;
+      }
+
       setTasksLoading(true);
       try {
-        const data = await api.entities['Task'].list('-created_date', 100);
+        const data = await api.entities['Task'].filter({ user_email: userEmail }, '-created_date', 100);
         const filtered = data.filter((task) => task.scheduled_date === todayKey);
         setTodayTasks(filtered);
       } catch {
@@ -67,7 +73,7 @@ export default function DailyCheckIn() {
     };
 
     loadTodayTasks();
-  }, [todayKey]);
+  }, [todayKey, userEmail]);
 
   const recentEntries = useMemo(() => {
     return Object.entries(entries)
