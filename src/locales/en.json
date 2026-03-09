@@ -1,0 +1,42 @@
+{
+  "Dashboard": "Dashboard",
+  "Tasks": "Tasks",
+  "Focus": "Focus",
+  "Calm": "Calm",
+  "DailyCheckIn": "Daily Check-In",
+  "Forum": "Forum",
+  "AIHelp": "AI Help",
+  "Profile": "Profile",
+  "dashboard": {
+    "feature1": { "title": "Smart Time Management", "desc": "Simple time management techniques tailored for people with ADHD. Pomodoro, task splitting, and more." },
+    "feature2": { "title": "Task Lists", "desc": "A simple visual task system to help you track progress without feeling overwhelmed." },
+    "feature3": { "title": "Supportive Community", "desc": "Join a community of people who understand you. Share, learn, and grow together." },
+    "stats": { "users": "Active Users", "satisfaction": "Satisfaction", "tools": "Tools & Techniques", "support": "Support Available" },
+    "pages": { "tasks": "Tasks", "focus": "Focus", "calm": "Calm", "dopamine": "Dopamine", "forum": "Forum", "aihelp": "AI Help", "dailycheckin": "Daily Check-In" },
+    "myProfile": "My Profile",
+    "version": "Version: {{version}}",
+    "features": "Features",
+    "about": "About",
+    "contact": "Contact",
+    "profile": "Profile",
+    "logout": "Logout",
+    "login": "Login",
+    "signup": "Sign Up",
+    "personalized": "Specially for you",
+    "speciallyForYou": "Specially for you",
+    "title1": "Your place",
+    "title2": "to focus and succeed",
+    "subtitle1": "Tools, tips, and support for people with ADHD.",
+    "subtitle2": "Because everyone deserves a chance to focus their way.",
+    "loggedInAs": "Logged in as {{userName}}",
+    "contactTitle": "Contact",
+    "contact": {
+      "fillAllFields": "Please fill in name, email, and message before sending.",
+      "invalidEmail": "Please enter a valid email address.",
+      "fileTooLarge": "File is too large. Max 10MB.",
+      "success": "Message sent successfully. We'll get back to you soon.",
+      "emailNotConfigured": "Sending is not configured yet. Please set up EmailJS in the project environment.",
+      "failed": "Failed to send message. Please try again later."
+    }
+  }
+}
