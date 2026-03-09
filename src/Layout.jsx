@@ -14,7 +14,10 @@ export default function Layout({ children, currentPageName }) {
       style={{ background: "linear-gradient(135deg, #edf5ea 0%, #f8f2e6 52%, #e6efe2 100%)" }}
     >
       {!isHomePage && (
-        <header className="sticky top-0 z-40 flex items-center justify-between px-4 py-2 border-b border-white/50 bg-white/70 backdrop-blur">
+        <header
+          className="sticky top-0 z-40 flex items-center justify-between px-4 py-2 border-b border-white/50 bg-white/70 backdrop-blur"
+          style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.5rem)" }}
+        >
           <a href="/" className="flex items-center gap-2 text-lg font-bold text-slate-800">
             <img src={`${import.meta.env.BASE_URL || '/'}app-icon.svg`} alt="Midhd" className="h-8 w-8 rounded-lg" />
             <span>Midhd</span>

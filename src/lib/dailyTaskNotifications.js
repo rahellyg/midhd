@@ -102,6 +102,7 @@ export const sendTodayTasksNotification = async (pendingTasks) => {
     ? i18n.t('dailyTasksNotification.titleWithCount', { count: pendingTasks.length })
     : i18n.t('dailyTasksNotification.titleUpdate');
   const body = buildNotificationBody(pendingTasks);
+  const tasksUrl = `${import.meta.env.BASE_URL}Tasks`;
 
   try {
     if ('serviceWorker' in navigator) {
@@ -112,6 +113,7 @@ export const sendTodayTasksNotification = async (pendingTasks) => {
           icon: `${import.meta.env.BASE_URL}app-icon.svg`,
           badge: `${import.meta.env.BASE_URL}app-icon.svg`,
           tag: 'midhd-daily-tasks',
+            data: { url: tasksUrl },
         });
         return { sent: true };
       }

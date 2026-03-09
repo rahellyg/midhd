@@ -1,1 +1,9 @@
-if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/midhd/sw.js', { scope: '/midhd/' })})}
+self.addEventListener('install', () => {
+	self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+	event.waitUntil(self.clients.claim());
+});
+
+importScripts('push-handler.js');

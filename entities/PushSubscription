@@ -1,0 +1,51 @@
+{
+  "name": "PushSubscription",
+  "type": "object",
+  "properties": {
+    "endpoint": {
+      "type": "string",
+      "description": "Push service endpoint URL"
+    },
+    "p256dh": {
+      "type": "string"
+    },
+    "auth": {
+      "type": "string"
+    },
+    "subscription": {
+      "type": "object",
+      "description": "Raw Web Push subscription JSON"
+    },
+    "expiration_time": {
+      "type": ["number", "null"]
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "user_id": {
+      "type": "string"
+    },
+    "user_email": {
+      "type": "string"
+    },
+    "user_agent": {
+      "type": "string"
+    },
+    "platform": {
+      "type": "string"
+    },
+    "language": {
+      "type": "string"
+    },
+    "last_seen_at": {
+      "type": "string"
+    },
+    "unsubscribed_at": {
+      "type": ["string", "null"]
+    }
+  },
+  "required": [
+    "endpoint"
+  ]
+}

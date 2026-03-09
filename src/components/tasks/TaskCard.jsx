@@ -1,4 +1,4 @@
-import { CheckCircle2, Circle, Clock, Flame, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { CheckCircle2, Circle, Clock, ChevronDown, ChevronUp, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { api } from "@/api/apiClient";
 
@@ -9,12 +9,12 @@ const priorityConfig = {
 };
 
 const energyConfig = {
-  high: { label: "🔥 אנרגיה גבוהה", color: "text-orange-500" },
-  medium: { label: "⚡ אנרגיה בינונית", color: "text-yellow-500" },
-  low: { label: "🌿 אנרגיה נמוכה", color: "text-green-500" },
+  high: { label: "🔥 דחיפות גבוהה", color: "text-orange-500" },
+  medium: { label: "⚡ דחיפות בינונית", color: "text-yellow-500" },
+  low: { label: "🌿 דחיפות נמוכה", color: "text-green-500" },
 };
 
-export default function TaskCard({ task, onUpdate, onDelete }) {
+export default function TaskCard({ task, onUpdate, onDelete, onEdit }) {
   const [expanded, setExpanded] = useState(false);
 
   const toggleDone = async () => {
@@ -107,9 +107,18 @@ export default function TaskCard({ task, onUpdate, onDelete }) {
             </div>
           )}
         </div>
-        <button onClick={handleDelete} className="text-slate-200 hover:text-red-400 transition-colors shrink-0">
-          <Trash2 size={16} />
-        </button>
+        <div className="flex flex-col gap-2 shrink-0">
+          <button
+            onClick={() => onEdit?.(task)}
+            className="text-slate-300 hover:text-indigo-500 transition-colors"
+            aria-label="ערוך משימה"
+          >
+            <Pencil size={16} />
+          </button>
+          <button onClick={handleDelete} className="text-slate-200 hover:text-red-400 transition-colors">
+            <Trash2 size={16} />
+          </button>
+        </div>
       </div>
     </div>
   );

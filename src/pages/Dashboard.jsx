@@ -10,7 +10,13 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 export default function Dashboard() {
   const { t, i18n } = useTranslation();
   const { isAuthenticated, user, logout } = useAuth();
-  const [contactForm, setContactForm] = useState({ fullName: "", email: "", message: "" });
+  const getDefaultContactForm = () => ({
+    fullName: user?.full_name || user?.name || "",
+    email: user?.email || "",
+    phone: user?.phone || "",
+    message: "",
+  });
+  const [contactForm, setContactForm] = useState(getDefaultContactForm);
   const [contactFile, setContactFile] = useState(null);
   const [sendingContact, setSendingContact] = useState(false);
   const [contactStatus, setContactStatus] = useState({ type: "", text: "" });
@@ -68,6 +74,15 @@ export default function Dashboard() {
     };
   }, []);
 
+  useEffect(() => {
+    setContactForm((prev) => ({
+      ...prev,
+      fullName: prev.fullName || user?.full_name || user?.name || "",
+      email: prev.email || user?.email || "",
+      phone: prev.phone || user?.phone || "",
+    }));
+  }, [user?.full_name, user?.name, user?.email, user?.phone]);
+
   const handleInstallApp = async () => {
       if (!installPromptEvent) return;
 
@@ -87,6 +102,7 @@ export default function Dashboard() {
       event.preventDefault();
       const trimmedName = contactForm.fullName.trim();
       const trimmedEmail = contactForm.email.trim();
+      const trimmedPhone = contactForm.phone.trim();
       const trimmedMessage = contactForm.message.trim();
 
       if (!trimmedName || !trimmedEmail || !trimmedMessage) {
@@ -112,11 +128,12 @@ export default function Dashboard() {
         await sendContactEmail({
           fullName: trimmedName,
           email: trimmedEmail,
+          phone: trimmedPhone,
           message: trimmedMessage,
           attachment: contactFile,
         });
 
-        setContactForm({ fullName: "", email: "", message: "" });
+        setContactForm(getDefaultContactForm());
         setContactFile(null);
         setContactStatus({ type: "success", text: t('dashboard.contactSuccess') });
       } catch (error) {
@@ -138,7 +155,10 @@ export default function Dashboard() {
         <div className="landing-gradient-blob right-0 top-0 h-96 w-96 bg-[#7FB3A8]" />
         <div className="landing-gradient-blob bottom-20 left-10 h-72 w-72 bg-[#A8D5BA] [animation-delay:-4s]" />
 
-        <nav className="relative z-10 px-6 py-4">
+        <nav
+          className="relative z-10 px-6 py-4"
+          style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 1rem)" }}
+        >
           <div className="mx-auto w-full max-w-6xl">
             <div className="flex items-center justify-between">
             <div className="flex flex-col items-start gap-0.5">
@@ -146,7 +166,7 @@ export default function Dashboard() {
                 <img src={`${import.meta.env.BASE_URL}app-icon.svg`} alt="Midhd logo" className="h-10 w-10 rounded-xl" />
                 <span className="text-xl font-bold">Midhd</span>
               </div>
-              <span className="text-xs text-[#6B9B8A] mt-0.5">{t('dashboard.version', { version: '0.0.4' })}</span>
+              <span className="text-xs text-[#6B9B8A] mt-0.5">{t('dashboard.version', { version: '0.0.5' })}</span>
             </div>
 
             <div className="hidden items-center gap-6 md:flex">
@@ -330,6 +350,13 @@ export default function Dashboard() {
                       onChange={(event) => handleContactChange("email", event.target.value)}
                       className="w-full rounded-2xl border border-[#A8D5BA66] bg-white/95 px-4 py-3 text-sm text-[#2D5A4A] placeholder:text-[#6B9B8A] focus:outline-none focus:ring-2 focus:ring-[#A8D5BA]"
                       placeholder={t('dashboard.contactEmail')}
+                    />
+                    <input
+                      type="tel"
+                      value={contactForm.phone}
+                      onChange={(event) => handleContactChange("phone", event.target.value)}
+                      className="w-full rounded-2xl border border-[#A8D5BA66] bg-white/95 px-4 py-3 text-sm text-[#2D5A4A] placeholder:text-[#6B9B8A] focus:outline-none focus:ring-2 focus:ring-[#A8D5BA]"
+                      placeholder={t('dashboard.contactPhone')}
                     />
                     <textarea
                       value={contactForm.message}

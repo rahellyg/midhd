@@ -379,7 +379,7 @@ const resolveFromUrl = (fromUrl) => {
  *   update: (id: string, data: Record<string, unknown>) => Promise<any>;
  *   delete: (id: string) => Promise<{ success: boolean }>;
  * }} EntityApi
- * @typedef {{ Task: EntityApi; FocusSession: EntityApi; ForumThread: EntityApi; DailyCheckIn: EntityApi; UserProfile: EntityApi; AuthEvent: EntityApi }} ApiEntities
+ * @typedef {{ Task: EntityApi; FocusSession: EntityApi; ForumThread: EntityApi; DailyCheckIn: EntityApi; UserProfile: EntityApi; AuthEvent: EntityApi; PushSubscription: EntityApi }} ApiEntities
  */
 
 export const getAppPublicSettings = async (id) => {

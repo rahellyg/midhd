@@ -13,10 +13,22 @@ const hasValidConfig = () => {
   return Boolean(requiredConfig.serviceId && requiredConfig.templateId && requiredConfig.publicKey);
 };
 
-export const sendContactEmail = async ({ fullName, email, message, attachment }) => {
+const buildMessageWithPhone = (message, phone) => {
+  const normalizedPhone = String(phone || '').trim();
+  if (!normalizedPhone) {
+    return message;
+  }
+
+  return `${message}\n\nPhone: ${normalizedPhone}`;
+};
+
+export const sendContactEmail = async ({ fullName, email, phone, message, attachment }) => {
   if (!hasValidConfig()) {
     throw new Error('missing_email_config');
   }
+
+  const normalizedPhone = String(phone || '').trim();
+  const messageWithPhone = buildMessageWithPhone(message, normalizedPhone);
 
   if (attachment) {
     const formData = new FormData();
@@ -26,7 +38,8 @@ export const sendContactEmail = async ({ fullName, email, message, attachment })
     formData.append('to_email', CONTACT_RECEIVER_EMAIL);
     formData.append('from_name', fullName);
     formData.append('from_email', email);
-    formData.append('message', message);
+    formData.append('phone', normalizedPhone);
+    formData.append('message', messageWithPhone);
     formData.append('app_name', 'midhd');
     formData.append('attachment', attachment);
 
@@ -51,7 +64,8 @@ export const sendContactEmail = async ({ fullName, email, message, attachment })
       to_email: CONTACT_RECEIVER_EMAIL,
       from_name: fullName,
       from_email: email,
-      message,
+      phone: normalizedPhone,
+      message: messageWithPhone,
       app_name: 'midhd',
     },
   };

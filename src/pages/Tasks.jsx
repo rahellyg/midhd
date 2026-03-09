@@ -16,6 +16,12 @@ import {
   sendTodayTasksNotification,
   updateNotificationSettings,
 } from "@/lib/dailyTaskNotifications";
+import {
+  hasWebPushConfig,
+  isWebPushSupported,
+  subscribeCurrentDeviceToPush,
+  unsubscribeCurrentDeviceFromPush,
+} from "@/lib/webPush";
 
 const filterKeys = ["all", "todo", "in_progress", "done"];
 const energyKeys = ["all", "low", "medium", "high"];
@@ -26,6 +32,7 @@ export default function Tasks() {
   const [tasks, setTasks] = useState([]);
   const [statusFilter, setStatusFilter] = useState("all");
   const [energyFilter, setEnergyFilter] = useState("all");
+  const [taskToEdit, setTaskToEdit] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notificationsSupported, setNotificationsSupported] = useState(false);
@@ -46,7 +53,7 @@ export default function Tasks() {
   useEffect(() => { load(); }, []);
 
   useEffect(() => {
-    const supported = isNotificationsSupported();
+    const supported = isNotificationsSupported() && isWebPushSupported();
     setNotificationsSupported(supported);
     if (!supported) {
       return;
@@ -64,6 +71,13 @@ export default function Tasks() {
       return;
     }
 
+    if (!hasWebPushConfig()) {
+      setNotificationsEnabled(false);
+      updateNotificationSettings({ enabled: false });
+      setNotificationMessage(t("tasks.notificationsPushConfigMissing"));
+      return;
+    }
+
     const permission = await requestNotificationPermission();
     setNotificationPermission(permission);
 
@@ -74,12 +88,27 @@ export default function Tasks() {
       return;
     }
 
+    const subscriptionResult = await subscribeCurrentDeviceToPush({ user });
+    if (!subscriptionResult.ok) {
+      setNotificationsEnabled(false);
+      updateNotificationSettings({ enabled: false });
+      setNotificationMessage(t("tasks.notificationsPushSubscribeFailed"));
+      return;
+    }
+
     setNotificationsEnabled(true);
     updateNotificationSettings({ enabled: true, time: notificationTime });
     setNotificationMessage(t("tasks.notificationsEnabled"));
   };
 
-  const handleDisableNotifications = () => {
+  const handleDisableNotifications = async () => {
+    if (hasWebPushConfig()) {
+      const unsubscribeResult = await unsubscribeCurrentDeviceFromPush();
+      if (!unsubscribeResult.ok) {
+        setNotificationMessage(t("tasks.notificationsPushUnsubscribeFailed"));
+      }
+    }
+
     setNotificationsEnabled(false);
     updateNotificationSettings({ enabled: false });
     setNotificationMessage(t("tasks.notificationsDisabled"));
@@ -101,6 +130,21 @@ export default function Tasks() {
     }
     markNotifiedToday();
     setNotificationMessage(t("tasks.testSent"));
+  };
+
+  const openCreateModal = () => {
+    setTaskToEdit(null);
+    setShowModal(true);
+  };
+
+  const openEditModal = (task) => {
+    setTaskToEdit(task);
+    setShowModal(true);
+  };
+
+  const closeTaskModal = () => {
+    setShowModal(false);
+    setTaskToEdit(null);
   };
 
   const filtered = tasks.filter(t => {
@@ -128,7 +172,7 @@ export default function Tasks() {
           <p className="text-slate-500 text-sm">{t("tasks.activeCount", { count: activeCount })}</p>
         </div>
         <button
-          onClick={() => setShowModal(true)}
+          onClick={openCreateModal}
           className="btn-primary text-white w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg"
         >
           <Plus size={24} />
@@ -202,7 +246,7 @@ export default function Tasks() {
         ))}
       </div>
 
-      {/* Energy filter */}
+      {/* Urgency filter */}
       <div className="flex gap-2 mb-5 overflow-x-auto scrollbar-hide pb-1">
         {energyFilters.map((f) => (
           <button
@@ -227,7 +271,7 @@ export default function Tasks() {
             <div className="mb-4">
               <p className="text-xs font-semibold text-slate-400 mb-2 px-1">{t("tasks.today")}</p>
               {todayTasks.map((task) => (
-                <TaskCard key={task.id} task={task} onUpdate={load} onDelete={load} />
+                <TaskCard key={task.id} task={task} onUpdate={load} onDelete={load} onEdit={openEditModal} />
               ))}
             </div>
           )}
@@ -235,7 +279,7 @@ export default function Tasks() {
             <div>
               <p className="text-xs font-semibold text-slate-400 mb-2 px-1">{t("tasks.otherDates")}</p>
               {otherTasks.map((task) => (
-                <TaskCard key={task.id} task={task} onUpdate={load} onDelete={load} />
+                <TaskCard key={task.id} task={task} onUpdate={load} onDelete={load} onEdit={openEditModal} />
               ))}
             </div>
           )}
@@ -249,7 +293,7 @@ export default function Tasks() {
         </>
       )}
 
-      {showModal && <AddTaskModal onClose={() => setShowModal(false)} onSave={load} />}
+      {showModal && <AddTaskModal onClose={closeTaskModal} onSave={load} taskToEdit={taskToEdit} />}
       <BottomNav />
     </div>
   );
