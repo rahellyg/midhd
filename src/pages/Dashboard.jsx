@@ -166,7 +166,7 @@ export default function Dashboard() {
                 <img src={`${import.meta.env.BASE_URL}app-icon.svg`} alt="Midhd logo" className="h-10 w-10 rounded-xl" />
                 <span className="text-xl font-bold">Midhd</span>
               </div>
-              <span className="text-xs text-[#6B9B8A] mt-0.5">{t('dashboard.version', { version: '0.0.6' })}</span>
+              <span className="text-xs text-[#6B9B8A] mt-0.5">{t('dashboard.version', { version: '0.0.7' })}</span>
             </div>
 
             <div className="hidden items-center gap-6 md:flex">
