@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Mail } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
+import { auth, isFirebaseConfigured } from '@/lib/firebase';
 import SiteCredit from '@/components/layout/SiteCredit';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 
@@ -27,8 +28,13 @@ export default function Login() {
       setError(t('login.errorInvalidEmail'));
       return;
     }
+
+    if (!isFirebaseConfigured || !auth) {
+      setError(t('login.resetError'));
+      return;
+    }
+
     try {
-      const { auth } = await import('@/lib/firebase');
       await sendPasswordResetEmail(auth, normalized);
       setResetSent(true);
     } catch (err) {
