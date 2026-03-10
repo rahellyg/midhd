@@ -63,6 +63,11 @@ export const updateNotificationSettings = (nextValues) => {
   return next;
 };
 
+export const syncNotificationSettingsToCloud = async (settings = getNotificationSettings()) => {
+  // Compatibility shim for older callers that still import this helper.
+  return settings;
+};
+
 export const requestNotificationPermission = async () => {
   if (!isNotificationsSupported()) {
     return 'unsupported';
