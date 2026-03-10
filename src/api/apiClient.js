@@ -43,7 +43,8 @@ const createLocalDb = () => ({
   Task: [],
   FocusSession: [],
   UserProfile: [],
-  AuthEvent: []
+  AuthEvent: [],
+  UserNotificationSettings: []
 });
 
 const readLocalDb = () => {
@@ -60,7 +61,8 @@ const readLocalDb = () => {
       Task: Array.isArray(parsed?.Task) ? parsed.Task : [],
       FocusSession: Array.isArray(parsed?.FocusSession) ? parsed.FocusSession : [],
       UserProfile: Array.isArray(parsed?.UserProfile) ? parsed.UserProfile : [],
-      AuthEvent: Array.isArray(parsed?.AuthEvent) ? parsed.AuthEvent : []
+      AuthEvent: Array.isArray(parsed?.AuthEvent) ? parsed.AuthEvent : [],
+      UserNotificationSettings: Array.isArray(parsed?.UserNotificationSettings) ? parsed.UserNotificationSettings : []
     };
   } catch {
     return createLocalDb();
@@ -379,7 +381,7 @@ const resolveFromUrl = (fromUrl) => {
  *   update: (id: string, data: Record<string, unknown>) => Promise<any>;
  *   delete: (id: string) => Promise<{ success: boolean }>;
  * }} EntityApi
- * @typedef {{ Task: EntityApi; FocusSession: EntityApi; ForumThread: EntityApi; DailyCheckIn: EntityApi; UserProfile: EntityApi; AuthEvent: EntityApi; PushSubscription: EntityApi }} ApiEntities
+ * @typedef {{ Task: EntityApi; FocusSession: EntityApi; ForumThread: EntityApi; DailyCheckIn: EntityApi; UserProfile: EntityApi; AuthEvent: EntityApi; PushSubscription: EntityApi; UserNotificationSettings: EntityApi }} ApiEntities
  */
 
 export const getAppPublicSettings = async (id) => {

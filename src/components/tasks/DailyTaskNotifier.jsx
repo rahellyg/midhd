@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { api } from '@/api/apiClient';
+import { useAuth } from '@/lib/AuthContext';
 import {
   getNotificationPermission,
   getNotificationSettings,
@@ -7,9 +8,12 @@ import {
   markNotifiedToday,
   sendTodayTasksNotification,
   shouldSendDailyNotification,
+  syncNotificationSettingsToCloud,
 } from '@/lib/dailyTaskNotifications';
 
 export default function DailyTaskNotifier({ isAuthenticated }) {
+  const { user } = useAuth();
+
   useEffect(() => {
     if (!isAuthenticated) {
       return;
@@ -38,6 +42,7 @@ export default function DailyTaskNotifier({ isAuthenticated }) {
         const result = await sendTodayTasksNotification(pendingToday);
         if (result.sent) {
           markNotifiedToday();
+          syncNotificationSettingsToCloud(api.entities, user, getNotificationSettings());
         }
       } catch {
         // Silent by design: reminders should not break app flow.
@@ -59,7 +64,7 @@ export default function DailyTaskNotifier({ isAuthenticated }) {
       window.clearInterval(intervalId);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user]);
 
   return null;
 }

@@ -19,6 +19,7 @@ const PUSH_PUBLIC_KEY = String(
 ).trim();
 const PUSH_PRIVATE_KEY = String(process.env.WEB_PUSH_PRIVATE_KEY || '').trim();
 const PUSH_SUBJECT = String(process.env.WEB_PUSH_SUBJECT || 'mailto:admin@example.com').trim();
+const PUSH_APP_BASE_URL = String(process.env.PUSH_APP_BASE_URL || '/midhd/').trim().replace(/\/?$/, '/');
 const FIREBASE_PROJECT_ID = String(
   process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || ''
 ).trim();
@@ -121,6 +122,106 @@ app.get('/health', (_req, res) => {
     pushConfigured: Boolean(PUSH_PUBLIC_KEY && PUSH_PRIVATE_KEY),
     firebaseProjectId: FIREBASE_PROJECT_ID || null,
   });
+});
+
+const getTodayKey = () => new Date().toISOString().split('T')[0];
+
+const getTimeSlot = (date = new Date()) => {
+  const h = date.getHours();
+  const m = date.getMinutes();
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+};
+
+app.post('/push/send-daily-reminders', requireApiKey, async (_req, res) => {
+  const timeSlot = getTimeSlot();
+  const todayKey = getTodayKey();
+  const title = 'midhd – משימות להיום';
+  const body = 'פתחו את האפליקציה כדי לראות את המשימות להיום.';
+  const url = `${PUSH_APP_BASE_URL}Tasks`;
+  const tag = 'midhd-daily-tasks';
+
+  try {
+    const snapshot = await db
+      .collection('UserNotificationSettings')
+      .where('enabled', '==', true)
+      .where('time', '==', timeSlot)
+      .get();
+
+    const toNotify = snapshot.docs
+      .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
+      .filter((record) => {
+        const last = record.last_notified_date;
+        return last !== todayKey && (last == null || last !== todayKey);
+      });
+
+    if (toNotify.length === 0) {
+      res.json({
+        ok: true,
+        timeSlot,
+        todayKey,
+        usersMatched: 0,
+        sent: 0,
+        message: 'no_users_to_notify',
+      });
+      return;
+    }
+
+    const payload = JSON.stringify({
+      title,
+      body,
+      url,
+      tag,
+      icon: 'app-icon.svg',
+      badge: 'app-icon.svg',
+      data: { url },
+    });
+
+    let totalSent = 0;
+    let totalFailed = 0;
+
+    for (const record of toNotify) {
+      const records = await loadEnabledSubscriptions({
+        userEmail: record.user_email || undefined,
+        userId: record.user_id || undefined,
+      });
+      for (const sub of records) {
+        const subscription = normalizeSubscription(sub);
+        if (!subscription) {
+          totalFailed += 1;
+          continue;
+        }
+        try {
+          await webpush.sendNotification(subscription, payload);
+          totalSent += 1;
+        } catch (error) {
+          totalFailed += 1;
+          const statusCode = Number(error?.statusCode || 0);
+          if (statusCode === 404 || statusCode === 410) {
+            await markSubscriptionInvalid(sub.id);
+          }
+        }
+      }
+      await db.collection('UserNotificationSettings').doc(record.id).update({
+        last_notified_date: todayKey,
+        updated_date: new Date().toISOString(),
+      });
+    }
+
+    res.json({
+      ok: true,
+      timeSlot,
+      todayKey,
+      usersMatched: toNotify.length,
+      sent: totalSent,
+      failed: totalFailed,
+    });
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      error: 'daily_reminders_failed',
+      detail: String(error?.message || 'unknown_error'),
+    });
+  }
 });
 
 app.post('/push/send', requireApiKey, async (req, res) => {
