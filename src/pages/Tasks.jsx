@@ -27,7 +27,7 @@ const filterKeys = ["all", "todo", "in_progress", "done"];
 const energyKeys = ["all", "low", "medium", "high"];
 
 export default function Tasks() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -137,6 +137,25 @@ export default function Tasks() {
     setShowModal(true);
   };
 
+  const formatTaskDate = (value) => {
+    if (!value) {
+      return "";
+    }
+
+    const [year, month, day] = String(value).split("-").map(Number);
+    const parsed = new Date(year, (month || 1) - 1, day || 1);
+    if (Number.isNaN(parsed.getTime())) {
+      return value;
+    }
+
+    return new Intl.DateTimeFormat(i18n.language || undefined, {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    }).format(parsed);
+  };
+
   const openEditModal = (task) => {
     setTaskToEdit(task);
     setShowModal(true);
@@ -157,6 +176,16 @@ export default function Tasks() {
   const todayStr = new Date().toISOString().split("T")[0];
   const todayTasks = filtered.filter(t => !t.scheduled_date || t.scheduled_date === todayStr);
   const otherTasks = filtered.filter(t => t.scheduled_date && t.scheduled_date !== todayStr);
+  const otherTaskGroups = Object.entries(
+    otherTasks.reduce((acc, task) => {
+      const key = task.scheduled_date;
+      if (!acc[key]) {
+        acc[key] = [];
+      }
+      acc[key].push(task);
+      return acc;
+    }, {})
+  ).sort(([a], [b]) => a.localeCompare(b));
 
   const filterLabels = { all: "filterAll", todo: "filterTodo", in_progress: "filterInProgress", done: "filterDone" };
   const energyLabels = { all: "energyAll", low: "energyLow", medium: "energyMedium", high: "energyHigh" };
@@ -275,11 +304,15 @@ export default function Tasks() {
               ))}
             </div>
           )}
-          {otherTasks.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-slate-400 mb-2 px-1">{t("tasks.otherDates")}</p>
-              {otherTasks.map((task) => (
-                <TaskCard key={task.id} task={task} onUpdate={load} onDelete={load} onEdit={openEditModal} />
+          {otherTaskGroups.length > 0 && (
+            <div className="space-y-4">
+              {otherTaskGroups.map(([date, tasksByDate]) => (
+                <div key={date}>
+                  <p className="text-xs font-semibold text-slate-400 mb-2 px-1">{formatTaskDate(date)}</p>
+                  {tasksByDate.map((task) => (
+                    <TaskCard key={task.id} task={task} onUpdate={load} onDelete={load} onEdit={openEditModal} />
+                  ))}
+                </div>
               ))}
             </div>
           )}
