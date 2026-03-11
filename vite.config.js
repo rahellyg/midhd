@@ -33,7 +33,7 @@ export default defineConfig(({ command }) => {
         registerType: 'autoUpdate',
         injectRegister: false,
         manifestFilename: 'manifest.json',
-        includeAssets: ['app-icon.svg', 'og-home.png'],
+        includeAssets: ['app-icon.svg', 'app-icon-192.png', 'app-icon-512.png', 'og-home.png'],
         manifest: {
           name: 'midhd – קן הריכוז',
           short_name: 'midhd',
@@ -48,22 +48,16 @@ export default defineConfig(({ command }) => {
           lang: 'he',
           icons: [
             {
-              src: 'app-icon.svg',
-              sizes: 'any',
-              type: 'image/svg+xml',
-              purpose: 'any'
-            },
-            {
-              src: 'app-icon.svg',
+              src: 'app-icon-192.png',
               sizes: '192x192',
-              type: 'image/svg+xml',
-              purpose: 'maskable'
+              type: 'image/png',
+              purpose: 'any maskable'
             },
             {
-              src: 'app-icon.svg',
               sizes: '512x512',
-              type: 'image/svg+xml',
-              purpose: 'maskable'
+              src: 'app-icon-512.png',
+              type: 'image/png',
+              purpose: 'any maskable'
             }
           ]
         },
@@ -76,7 +70,8 @@ export default defineConfig(({ command }) => {
           runtimeCaching: []
         },
         devOptions: {
-          enabled: false
+          enabled: true,
+          type: 'module'
         }
       })
     ]

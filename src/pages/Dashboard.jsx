@@ -53,7 +53,7 @@ export default function Dashboard() {
   useEffect(() => {
     const isIos = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
     const standaloneDisplayMode = window.matchMedia?.("(display-mode: standalone)")?.matches;
-    const standaloneNavigator = window.navigator.standalone === true;
+    const standaloneNavigator = Boolean(/** @type {any} */ (window.navigator).standalone);
     const standalone = Boolean(standaloneDisplayMode || standaloneNavigator);
     setIsStandalone(Boolean(standalone));
     setShowIosInstallHint(Boolean(isIos && !standalone));
@@ -178,7 +178,7 @@ export default function Dashboard() {
                 <img src={`${import.meta.env.BASE_URL}app-icon.svg`} alt="Midhd logo" className="h-10 w-10 rounded-xl" />
                 <span className="text-xl font-bold">Midhd</span>
               </div>
-              <span className="text-xs text-[#6B9B8A] mt-0.5">{t('dashboard.version', { version: '0.0.7' })}</span>
+              <span className="text-xs text-[#6B9B8A] mt-0.5">{t('dashboard.version', { version: '0.0.8' })}</span>
             </div>
 
             <div className="hidden items-center gap-6 md:flex">
