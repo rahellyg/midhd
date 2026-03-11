@@ -6,6 +6,7 @@ import { createPageUrl } from "@/utils";
 import { useAuth } from "@/lib/AuthContext";
 import { getContactReceiverEmail, sendContactEmail } from "@/lib/contactEmail";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { toast } from "@/components/ui/use-toast";
 
 export default function Dashboard() {
   const { t, i18n } = useTranslation();
@@ -23,6 +24,7 @@ export default function Dashboard() {
   const [installPromptEvent, setInstallPromptEvent] = useState(null);
   const [isStandalone, setIsStandalone] = useState(false);
   const [showIosInstallHint, setShowIosInstallHint] = useState(false);
+  const shouldShowInstallButton = !isStandalone;
 
   const userName = user?.full_name || user?.name || user?.email || (i18n.language === 'he' ? 'הפרופיל שלי' : 'My profile');
   const receiverEmail = getContactReceiverEmail();
@@ -50,7 +52,9 @@ export default function Dashboard() {
 
   useEffect(() => {
     const isIos = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
-    const standalone = window.matchMedia?.("(display-mode: standalone)")?.matches;
+    const standaloneDisplayMode = window.matchMedia?.("(display-mode: standalone)")?.matches;
+    const standaloneNavigator = window.navigator.standalone === true;
+    const standalone = Boolean(standaloneDisplayMode || standaloneNavigator);
     setIsStandalone(Boolean(standalone));
     setShowIosInstallHint(Boolean(isIos && !standalone));
 
@@ -84,14 +88,22 @@ export default function Dashboard() {
   }, [user?.full_name, user?.name, user?.email, user?.phone]);
 
   const handleInstallApp = async () => {
-      if (!installPromptEvent) return;
-
+    if (installPromptEvent) {
       installPromptEvent.prompt();
       const choiceResult = await installPromptEvent.userChoice;
       if (choiceResult?.outcome === "accepted") {
         setInstallPromptEvent(null);
       }
-    };
+      return;
+    }
+
+    toast({
+      title: t("dashboard.installApp"),
+      description: showIosInstallHint
+        ? t("dashboard.iosInstallHint")
+        : t("dashboard.installNotAvailableHint"),
+    });
+  };
 
     const handleContactChange = (field, value) => {
       setContactStatus({ type: "", text: "" });
@@ -177,6 +189,15 @@ export default function Dashboard() {
             </div>
             {isAuthenticated ? (
               <div className="flex items-center gap-2">
+                {shouldShowInstallButton && (
+                  <button
+                    type="button"
+                    onClick={handleInstallApp}
+                    className="rounded-full border border-[#2D5A4A33] bg-white/90 px-4 py-2 text-sm font-semibold text-[#2D5A4A] transition-all hover:scale-105"
+                  >
+                    {t('dashboard.installApp')}
+                  </button>
+                )}
                 <Link
                   to={createPageUrl("Profile")}
                   className="rounded-full border border-[#2D5A4A33] bg-white/70 px-4 py-2 text-sm font-semibold text-[#2D5A4A] transition-all hover:scale-105"
@@ -193,6 +214,15 @@ export default function Dashboard() {
               </div>
             ) : (
               <div className="flex items-center gap-2">
+                {shouldShowInstallButton && (
+                  <button
+                    type="button"
+                    onClick={handleInstallApp}
+                    className="rounded-full border border-[#2D5A4A33] bg-white/90 px-4 py-2 text-sm font-semibold text-[#2D5A4A] transition-all hover:scale-105"
+                  >
+                    {t('dashboard.installApp')}
+                  </button>
+                )}
                 <Link
                   to="/login"
                   className="rounded-full border border-[#2D5A4A33] bg-white/70 px-4 py-2 text-sm font-semibold text-[#2D5A4A] transition-all hover:scale-105"
@@ -208,7 +238,16 @@ export default function Dashboard() {
               </div>
             )}
             </div>
-            <div className="mt-3 flex justify-end md:hidden">
+            <div className="mt-3 flex items-center justify-end gap-2 md:hidden">
+              {shouldShowInstallButton && (
+                <button
+                  type="button"
+                  onClick={handleInstallApp}
+                  className="rounded-full border border-[#2D5A4A33] bg-white/90 px-4 py-2 text-sm font-semibold text-[#2D5A4A] transition-all hover:scale-105"
+                >
+                  {t('dashboard.installApp')}
+                </button>
+              )}
               <LanguageSwitcher />
             </div>
           </div>
@@ -261,7 +300,7 @@ export default function Dashboard() {
                     >
                       {t('dashboard.contactTitle')}
                     </a>
-                    {!isStandalone && installPromptEvent && (
+                    {shouldShowInstallButton && (
                       <button
                         type="button"
                         onClick={handleInstallApp}
@@ -297,7 +336,7 @@ export default function Dashboard() {
                   >
                     {t('dashboard.contactTitle')}
                   </a>
-                  {!isStandalone && installPromptEvent && (
+                  {shouldShowInstallButton && (
                     <button
                       type="button"
                       onClick={handleInstallApp}

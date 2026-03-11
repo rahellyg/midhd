@@ -27,6 +27,7 @@
     },
     "installApp": "Install app",
     "iosInstallHint": "On iPhone: tap Share then \"Add to Home Screen\" to install the app.",
+    "installNotAvailableHint": "Install is not available yet in this browser. Make sure you're on HTTPS and the app is fully loaded, then try again.",
     "contactPrompt": "Have a question, idea or feedback? Send a message directly to: {{receiverEmail}}",
     "contactFullName": "Full name",
     "contactEmail": "Email for reply",
