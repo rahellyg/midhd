@@ -1,5 +1,6 @@
 import { CheckCircle2, Circle, Clock, ChevronDown, ChevronUp, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { api } from "@/api/apiClient";
 
 const priorityConfig = {
@@ -8,13 +9,17 @@ const priorityConfig = {
   low: { label: "נמוכה", color: "bg-emerald-100 text-emerald-600", dot: "bg-emerald-500" },
 };
 
-const energyConfig = {
-  high: { label: "🔥 דחיפות גבוהה", color: "text-orange-500" },
-  medium: { label: "⚡ דחיפות בינונית", color: "text-yellow-500" },
-  low: { label: "🌿 דחיפות נמוכה", color: "text-green-500" },
+const taskTypeConfig = {
+  work: { color: "bg-blue-100 text-blue-600" },
+  home: { color: "bg-emerald-100 text-emerald-600" },
+  personal_development: { color: "bg-purple-100 text-purple-600" },
+  other: { color: "bg-slate-100 text-slate-600" },
 };
 
+const taskTypeLabelKeys = { work: "taskTypeWork", home: "taskTypeHome", personal_development: "taskTypePersonalDevelopment", other: "taskTypeOther" };
+
 export default function TaskCard({ task, onUpdate, onDelete, onEdit }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
 
   const toggleDone = async () => {
@@ -40,7 +45,9 @@ export default function TaskCard({ task, onUpdate, onDelete, onEdit }) {
 
   const isDone = task.status === "done";
   const priority = priorityConfig[task.priority] || priorityConfig.medium;
-  const energy = energyConfig[task.energy_level] || energyConfig.medium;
+  const taskType = task.task_type || task.energy_level || "other";
+  const typeKey = taskTypeLabelKeys[taskType] || taskTypeLabelKeys.other;
+  const typeStyle = taskTypeConfig[taskType] || taskTypeConfig.other;
   const stepsCount = task.steps?.length || 0;
   const doneSteps = task.steps?.filter(s => s.done).length || 0;
 
@@ -70,7 +77,7 @@ export default function TaskCard({ task, onUpdate, onDelete, onEdit }) {
                 {task.estimated_minutes} דק'
               </span>
             )}
-            <span className={`text-xs ${energy.color}`}>{energy.label}</span>
+            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${typeStyle.color}`}>{t(`tasks.${typeKey}`)}</span>
           </div>
           {stepsCount > 0 && (
             <div className="mt-2">

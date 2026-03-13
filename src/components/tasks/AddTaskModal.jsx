@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { api } from "@/api/apiClient";
 import { useAuth } from "@/lib/AuthContext";
 import { X, Plus, Minus } from "lucide-react";
@@ -8,7 +9,7 @@ const getDefaultForm = () => ({
   description: "",
   status: "todo",
   priority: "medium",
-  energy_level: "medium",
+  task_type: "other",
   estimated_minutes: 25,
   steps: [],
   scheduled_date: new Date().toISOString().split("T")[0],
@@ -24,7 +25,7 @@ const buildFormFromTask = (taskToEdit) => {
     description: taskToEdit.description || "",
     status: taskToEdit.status || "todo",
     priority: taskToEdit.priority || "medium",
-    energy_level: taskToEdit.energy_level || "medium",
+    task_type: ["work", "home", "personal_development", "other"].includes(taskToEdit.task_type) ? taskToEdit.task_type : "other",
     estimated_minutes: taskToEdit.estimated_minutes ?? 25,
     steps: Array.isArray(taskToEdit.steps)
       ? taskToEdit.steps.map((step) => ({ text: step?.text || "", done: Boolean(step?.done) }))
@@ -34,6 +35,7 @@ const buildFormFromTask = (taskToEdit) => {
 };
 
 export default function AddTaskModal({ onClose, onSave, taskToEdit = null }) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const isEditMode = Boolean(taskToEdit?.id);
   const [form, setForm] = useState(() => buildFormFromTask(taskToEdit));
@@ -117,15 +119,16 @@ export default function AddTaskModal({ onClose, onSave, taskToEdit = null }) {
               </select>
             </div>
             <div>
-              <label className="text-xs text-slate-500 mb-1 block">דחיפות המשימה</label>
+              <label className="text-xs text-slate-500 mb-1 block">{t("tasks.taskTypeLabel")}</label>
               <select
                 className="w-full bg-white/80 rounded-2xl px-3 py-2.5 text-slate-700 border border-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                value={form.energy_level}
-                onChange={e => setForm(f => ({ ...f, energy_level: e.target.value }))}
+                value={form.task_type}
+                onChange={e => setForm(f => ({ ...f, task_type: e.target.value }))}
               >
-                <option value="high">🔥 גבוהה</option>
-                <option value="medium">⚡ בינונית</option>
-                <option value="low">🌿 נמוכה</option>
+                <option value="work">{t("tasks.taskTypeWork")}</option>
+                <option value="home">{t("tasks.taskTypeHome")}</option>
+                <option value="personal_development">{t("tasks.taskTypePersonalDevelopment")}</option>
+                <option value="other">{t("tasks.taskTypeOther")}</option>
               </select>
             </div>
           </div>
