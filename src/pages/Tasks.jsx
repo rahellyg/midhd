@@ -24,14 +24,16 @@ import {
 } from "@/lib/webPush";
 
 const filterKeys = ["all", "todo", "in_progress", "done"];
-const energyKeys = ["all", "low", "medium", "high"];
+const priorityKeys = ["all", "high", "medium", "low"];
+const taskTypeKeys = ["all", "work", "home", "personal_development", "other"];
 
 export default function Tasks() {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [statusFilter, setStatusFilter] = useState("all");
-  const [energyFilter, setEnergyFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [taskTypeFilter, setTaskTypeFilter] = useState("all");
   const [taskToEdit, setTaskToEdit] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -168,9 +170,12 @@ export default function Tasks() {
 
   const filtered = tasks.filter(t => {
     const normalizedStatus = t.status || "todo";
+    const priority = t.priority || "medium";
+    const taskType = t.task_type || "other";
     const sMatch = statusFilter === "all" || normalizedStatus === statusFilter;
-    const eMatch = energyFilter === "all" || t.energy_level === energyFilter;
-    return sMatch && eMatch;
+    const pMatch = priorityFilter === "all" || priority === priorityFilter;
+    const typeMatch = taskTypeFilter === "all" || taskType === taskTypeFilter;
+    return sMatch && pMatch && typeMatch;
   });
 
   const todayStr = new Date().toISOString().split("T")[0];
@@ -188,9 +193,11 @@ export default function Tasks() {
   ).sort(([a], [b]) => a.localeCompare(b));
 
   const filterLabels = { all: "filterAll", todo: "filterTodo", in_progress: "filterInProgress", done: "filterDone" };
-  const energyLabels = { all: "energyAll", low: "energyLow", medium: "energyMedium", high: "energyHigh" };
+  const priorityLabels = { all: "priorityAll", high: "priorityHigh", medium: "priorityMedium", low: "priorityLow" };
+  const taskTypeLabels = { all: "taskTypeAll", work: "taskTypeWork", home: "taskTypeHome", personal_development: "taskTypePersonalDevelopment", other: "taskTypeOther" };
   const filters = filterKeys.map((key) => ({ key, label: t(`tasks.${filterLabels[key]}`) }));
-  const energyFilters = energyKeys.map((key) => ({ key, label: t(`tasks.${energyLabels[key]}`) }));
+  const priorityFilters = priorityKeys.map((key) => ({ key, label: t(`tasks.${priorityLabels[key]}`) }));
+  const taskTypeFilters = taskTypeKeys.map((key) => ({ key, label: t(`tasks.${taskTypeLabels[key]}`) }));
   const activeCount = tasks.filter((task) => task.status !== "done").length;
 
   return (
@@ -275,17 +282,31 @@ export default function Tasks() {
         ))}
       </div>
 
-      {/* Urgency filter */}
-      <div className="flex gap-2 mb-5 overflow-x-auto scrollbar-hide pb-1">
-        {energyFilters.map((f) => (
+      {/* Priority filter */}
+      <div className="flex gap-2 mb-3 overflow-x-auto scrollbar-hide pb-1">
+        {priorityFilters.map((f) => (
           <button
             key={f.key}
-            onClick={() => setEnergyFilter(f.key)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${energyFilter === f.key ? "bg-emerald-500 text-white shadow" : "bg-white/70 text-slate-600 hover:bg-emerald-50"}`}
+            onClick={() => setPriorityFilter(f.key)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${priorityFilter === f.key ? "bg-amber-500 text-white shadow" : "bg-white/70 text-slate-600 hover:bg-amber-50"}`}
           >
             {f.label}
           </button>
         ))}
+      </div>
+
+      {/* Task type filter – dropdown */}
+      <div className="mb-5">
+        <label className="block text-xs font-medium text-slate-500 mb-1.5 px-1">{t("tasks.taskTypeLabel")}</label>
+        <select
+          value={taskTypeFilter}
+          onChange={(e) => setTaskTypeFilter(e.target.value)}
+          className="w-full max-w-xs bg-white/80 rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+        >
+          {taskTypeFilters.map((f) => (
+            <option key={f.key} value={f.key}>{f.label}</option>
+          ))}
+        </select>
       </div>
 
       {loading ? (

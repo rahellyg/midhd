@@ -84,7 +84,7 @@ export default function AddTaskModal({ onClose, onSave, taskToEdit = null }) {
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 backdrop-blur-sm p-4 pb-24">
       <div className="glass rounded-3xl w-full max-w-lg max-h-[80vh] flex flex-col">
         <div className="flex justify-between items-center p-6 pb-3">
-          <h2 className="text-xl font-bold text-slate-800">{isEditMode ? "עריכת משימה" : "משימה חדשה"}</h2>
+          <h2 className="text-xl font-bold text-slate-800">{isEditMode ? t("tasks.modalTitleEdit") : t("tasks.modalTitleNew")}</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-700">
             <X size={22} />
           </button>
@@ -94,28 +94,28 @@ export default function AddTaskModal({ onClose, onSave, taskToEdit = null }) {
         <div className="space-y-4">
           <input
             className="w-full bg-white/80 rounded-2xl px-4 py-3 text-slate-800 placeholder-slate-400 border border-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-300"
-            placeholder="שם המשימה *"
+            placeholder={t("tasks.titlePlaceholder")}
             value={form.title}
             onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
           />
           <textarea
             className="w-full bg-white/80 rounded-2xl px-4 py-3 text-slate-800 placeholder-slate-400 border border-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-300 h-20 resize-none"
-            placeholder="תיאור (אופציונלי)"
+            placeholder={t("tasks.descriptionPlaceholder")}
             value={form.description}
             onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
           />
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-slate-500 mb-1 block">עדיפות</label>
+              <label className="text-xs text-slate-500 mb-1 block">{t("tasks.priorityLabel")}</label>
               <select
                 className="w-full bg-white/80 rounded-2xl px-3 py-2.5 text-slate-700 border border-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-300"
                 value={form.priority}
                 onChange={e => setForm(f => ({ ...f, priority: e.target.value }))}
               >
-                <option value="high">🔴 גבוהה</option>
-                <option value="medium">🟡 בינונית</option>
-                <option value="low">🟢 נמוכה</option>
+                <option value="high">🔴 {t("tasks.priorityHigh")}</option>
+                <option value="medium">🟡 {t("tasks.priorityMedium")}</option>
+                <option value="low">🟢 {t("tasks.priorityLow")}</option>
               </select>
             </div>
             <div>
@@ -135,7 +135,7 @@ export default function AddTaskModal({ onClose, onSave, taskToEdit = null }) {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-slate-500 mb-1 block">זמן משוער (דק')</label>
+              <label className="text-xs text-slate-500 mb-1 block">{t("tasks.estimatedMinutesLabel")}</label>
               <input
                 type="number"
                 className="w-full bg-white/80 rounded-2xl px-3 py-2.5 text-slate-700 border border-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-300"
@@ -146,7 +146,7 @@ export default function AddTaskModal({ onClose, onSave, taskToEdit = null }) {
               />
             </div>
             <div>
-              <label className="text-xs text-slate-500 mb-1 block">תאריך</label>
+              <label className="text-xs text-slate-500 mb-1 block">{t("tasks.dateLabel")}</label>
               <input
                 type="date"
                 className="w-full bg-white/80 rounded-2xl px-3 py-2.5 text-slate-700 border border-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-300"
@@ -157,11 +157,11 @@ export default function AddTaskModal({ onClose, onSave, taskToEdit = null }) {
           </div>
 
           <div>
-            <label className="text-xs text-slate-500 mb-2 block">שלבים קטנים (מומלץ לADHD!)</label>
+            <label className="text-xs text-slate-500 mb-2 block">{t("tasks.stepsLabel")}</label>
             <div className="flex gap-2 mb-2">
               <input
                 className="flex-1 bg-white/80 rounded-xl px-3 py-2 text-sm text-slate-700 border border-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                placeholder="הוסף שלב..."
+                placeholder={t("tasks.addStepPlaceholder")}
                 value={stepText}
                 onChange={e => setStepText(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && addStep()}
@@ -188,7 +188,7 @@ export default function AddTaskModal({ onClose, onSave, taskToEdit = null }) {
             disabled={saving}
             className="btn-primary w-full text-white font-semibold rounded-2xl py-3.5 disabled:opacity-50"
           >
-            {saving ? 'שומר...' : isEditMode ? 'עדכן משימה ✨' : 'שמור משימה ✨'}
+            {saving ? t("tasks.saving") : isEditMode ? `${t("tasks.updateTask")} ✨` : `${t("tasks.saveTask")} ✨`}
           </button>
         </div>
       </div>
