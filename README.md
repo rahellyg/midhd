@@ -97,6 +97,16 @@ Copy-Item .env.push.example .env.push
 	- `FIREBASE_SERVICE_ACCOUNT_FILE`, or
 	- `FIREBASE_SERVICE_ACCOUNT_JSON`
 
+Alternative: use Supabase as the push-server datastore (instead of Firebase Admin):
+
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+Optional Supabase table overrides:
+
+- `SUPABASE_PUSH_SUBSCRIPTIONS_TABLE` (default `PushSubscription`)
+- `SUPABASE_NOTIFICATION_SETTINGS_TABLE` (default `UserNotificationSettings`)
+
 3. Start the push endpoint:
 
 ```bash

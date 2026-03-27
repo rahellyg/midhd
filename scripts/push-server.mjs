@@ -4,8 +4,6 @@ import process from 'node:process';
 import express from 'express';
 import dotenv from 'dotenv';
 import webpush from 'web-push';
-import { applicationDefault, cert, initializeApp } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.push.local') });
 dotenv.config({ path: path.resolve(process.cwd(), '.env.push') });
@@ -23,12 +21,20 @@ const PUSH_APP_BASE_URL = String(process.env.PUSH_APP_BASE_URL || '/midhd/').tri
 const FIREBASE_PROJECT_ID = String(
   process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || ''
 ).trim();
+const SUPABASE_URL = String(process.env.SUPABASE_URL || '').trim().replace(/\/$/, '');
+const SUPABASE_SERVICE_ROLE_KEY = String(process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+const SUPABASE_PUSH_SUBSCRIPTIONS_TABLE = String(process.env.SUPABASE_PUSH_SUBSCRIPTIONS_TABLE || 'PushSubscription').trim();
+const SUPABASE_NOTIFICATION_SETTINGS_TABLE = String(process.env.SUPABASE_NOTIFICATION_SETTINGS_TABLE || 'UserNotificationSettings').trim();
 
 if (!PUSH_PUBLIC_KEY || !PUSH_PRIVATE_KEY) {
   throw new Error('Missing WEB_PUSH_PUBLIC_KEY or WEB_PUSH_PRIVATE_KEY in environment.');
 }
 
-const buildFirebaseCredential = () => {
+const useSupabase = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
+
+const buildFirebaseCredential = async () => {
+  const { applicationDefault, cert } = await import('firebase-admin/app');
+
   const serviceAccountFile = String(process.env.FIREBASE_SERVICE_ACCOUNT_FILE || '').trim();
   if (serviceAccountFile) {
     const raw = fs.readFileSync(path.resolve(process.cwd(), serviceAccountFile), 'utf8');
@@ -43,12 +49,156 @@ const buildFirebaseCredential = () => {
   return applicationDefault();
 };
 
-const adminApp = initializeApp({
-  credential: buildFirebaseCredential(),
-  projectId: FIREBASE_PROJECT_ID || undefined,
-});
+const createFirebaseStore = async () => {
+  const { initializeApp } = await import('firebase-admin/app');
+  const { getFirestore } = await import('firebase-admin/firestore');
 
-const db = getFirestore(adminApp);
+  const adminApp = initializeApp({
+    credential: await buildFirebaseCredential(),
+    projectId: FIREBASE_PROJECT_ID || undefined,
+  });
+  const db = getFirestore(adminApp);
+
+  return {
+    kind: 'firebase',
+    health: () => ({ firebaseProjectId: FIREBASE_PROJECT_ID || null, supabaseUrl: null }),
+    loadEnabledSubscriptions: async ({ userEmail, userId }) => {
+      const snapshot = await db
+        .collection('PushSubscription')
+        .where('enabled', '==', true)
+        .get();
+
+      return snapshot.docs
+        .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
+        .filter((record) => {
+          if (userEmail && String(record.user_email || '').toLowerCase() !== String(userEmail).toLowerCase()) {
+            return false;
+          }
+          if (userId && String(record.user_id || '') !== String(userId)) {
+            return false;
+          }
+          return true;
+        });
+    },
+    markSubscriptionInvalid: async (recordId) => {
+      await db.collection('PushSubscription').doc(recordId).update({
+        enabled: false,
+        unsubscribed_at: new Date().toISOString(),
+        updated_date: new Date().toISOString(),
+      });
+    },
+    loadDailyReminderUsers: async (timeSlot) => {
+      const snapshot = await db
+        .collection('UserNotificationSettings')
+        .where('enabled', '==', true)
+        .where('time', '==', timeSlot)
+        .get();
+
+      return snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
+    },
+    markUserNotifiedToday: async (recordId, todayKey) => {
+      await db.collection('UserNotificationSettings').doc(recordId).update({
+        last_notified_date: todayKey,
+        updated_date: new Date().toISOString(),
+      });
+    },
+  };
+};
+
+const createSupabaseStore = () => {
+  const apiBase = `${SUPABASE_URL}/rest/v1`;
+
+  const request = async ({ table, method = 'GET', query = {}, body = undefined }) => {
+    const url = new URL(`${apiBase}/${encodeURIComponent(table)}`);
+    Object.entries(query || {}).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === '') {
+        return;
+      }
+      url.searchParams.set(key, String(value));
+    });
+
+    const response = await fetch(url, {
+      method,
+      headers: {
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation',
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+
+    if (!response.ok) {
+      const detail = await response.text().catch(() => '');
+      throw new Error(`Supabase ${method} ${table} failed: ${response.status} ${detail}`);
+    }
+
+    if (response.status === 204) {
+      return [];
+    }
+
+    return response.json().catch(() => []);
+  };
+
+  return {
+    kind: 'supabase',
+    health: () => ({ firebaseProjectId: null, supabaseUrl: SUPABASE_URL || null }),
+    loadEnabledSubscriptions: async ({ userEmail, userId }) => {
+      const query = {
+        select: '*',
+        enabled: 'eq.true',
+      };
+      if (userEmail) {
+        query.user_email = `eq.${String(userEmail).toLowerCase()}`;
+      }
+      if (userId) {
+        query.user_id = `eq.${userId}`;
+      }
+
+      return request({
+        table: SUPABASE_PUSH_SUBSCRIPTIONS_TABLE,
+        method: 'GET',
+        query,
+      });
+    },
+    markSubscriptionInvalid: async (recordId) => {
+      await request({
+        table: SUPABASE_PUSH_SUBSCRIPTIONS_TABLE,
+        method: 'PATCH',
+        query: { id: `eq.${recordId}` },
+        body: {
+          enabled: false,
+          unsubscribed_at: new Date().toISOString(),
+          updated_date: new Date().toISOString(),
+        },
+      });
+    },
+    loadDailyReminderUsers: async (timeSlot) => {
+      return request({
+        table: SUPABASE_NOTIFICATION_SETTINGS_TABLE,
+        method: 'GET',
+        query: {
+          select: '*',
+          enabled: 'eq.true',
+          time: `eq.${timeSlot}`,
+        },
+      });
+    },
+    markUserNotifiedToday: async (recordId, todayKey) => {
+      await request({
+        table: SUPABASE_NOTIFICATION_SETTINGS_TABLE,
+        method: 'PATCH',
+        query: { id: `eq.${recordId}` },
+        body: {
+          last_notified_date: todayKey,
+          updated_date: new Date().toISOString(),
+        },
+      });
+    },
+  };
+};
+
+const store = useSupabase ? createSupabaseStore() : await createFirebaseStore();
 webpush.setVapidDetails(PUSH_SUBJECT, PUSH_PUBLIC_KEY, PUSH_PRIVATE_KEY);
 
 const app = express();
@@ -88,39 +238,14 @@ const normalizeSubscription = (record) => {
   };
 };
 
-const loadEnabledSubscriptions = async ({ userEmail, userId }) => {
-  const snapshot = await db
-    .collection('PushSubscription')
-    .where('enabled', '==', true)
-    .get();
-
-  return snapshot.docs
-    .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
-    .filter((record) => {
-      if (userEmail && String(record.user_email || '').toLowerCase() !== String(userEmail).toLowerCase()) {
-        return false;
-      }
-      if (userId && String(record.user_id || '') !== String(userId)) {
-        return false;
-      }
-      return true;
-    });
-};
-
-const markSubscriptionInvalid = async (recordId) => {
-  await db.collection('PushSubscription').doc(recordId).update({
-    enabled: false,
-    unsubscribed_at: new Date().toISOString(),
-    updated_date: new Date().toISOString(),
-  });
-};
-
 app.get('/health', (_req, res) => {
+  const sourceHealth = store.health();
   res.json({
     ok: true,
     service: 'midhd-push-server',
+    dataSource: store.kind,
     pushConfigured: Boolean(PUSH_PUBLIC_KEY && PUSH_PRIVATE_KEY),
-    firebaseProjectId: FIREBASE_PROJECT_ID || null,
+    ...sourceHealth,
   });
 });
 
@@ -141,14 +266,7 @@ app.post('/push/send-daily-reminders', requireApiKey, async (_req, res) => {
   const tag = 'midhd-daily-tasks';
 
   try {
-    const snapshot = await db
-      .collection('UserNotificationSettings')
-      .where('enabled', '==', true)
-      .where('time', '==', timeSlot)
-      .get();
-
-    const toNotify = snapshot.docs
-      .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
+    const toNotify = (await store.loadDailyReminderUsers(timeSlot))
       .filter((record) => {
         const last = record.last_notified_date;
         return last !== todayKey && (last == null || last !== todayKey);
@@ -180,7 +298,7 @@ app.post('/push/send-daily-reminders', requireApiKey, async (_req, res) => {
     let totalFailed = 0;
 
     for (const record of toNotify) {
-      const records = await loadEnabledSubscriptions({
+      const records = await store.loadEnabledSubscriptions({
         userEmail: record.user_email || undefined,
         userId: record.user_id || undefined,
       });
@@ -197,14 +315,11 @@ app.post('/push/send-daily-reminders', requireApiKey, async (_req, res) => {
           totalFailed += 1;
           const statusCode = Number(error?.statusCode || 0);
           if (statusCode === 404 || statusCode === 410) {
-            await markSubscriptionInvalid(sub.id);
+            await store.markSubscriptionInvalid(sub.id);
           }
         }
       }
-      await db.collection('UserNotificationSettings').doc(record.id).update({
-        last_notified_date: todayKey,
-        updated_date: new Date().toISOString(),
-      });
+      await store.markUserNotifiedToday(record.id, todayKey);
     }
 
     res.json({
@@ -244,7 +359,7 @@ app.post('/push/send', requireApiKey, async (req, res) => {
   }
 
   try {
-    const records = await loadEnabledSubscriptions({ userEmail, userId });
+    const records = await store.loadEnabledSubscriptions({ userEmail, userId });
     if (records.length === 0) {
       res.json({ ok: true, total: 0, sent: 0, failed: 0, message: 'no_subscriptions' });
       return;
@@ -284,7 +399,7 @@ app.post('/push/send', requireApiKey, async (req, res) => {
         failed += 1;
         const statusCode = Number(error?.statusCode || 0);
         if (statusCode === 404 || statusCode === 410) {
-          await markSubscriptionInvalid(record.id);
+          await store.markSubscriptionInvalid(record.id);
         }
 
         failures.push({
@@ -312,5 +427,5 @@ app.post('/push/send', requireApiKey, async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Push server listening on http://localhost:${PORT}`);
+  console.log(`Push server listening on http://localhost:${PORT} (data source: ${store.kind})`);
 });
