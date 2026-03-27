@@ -74,14 +74,6 @@ export default function Tasks() {
       return;
     }
 
-    if (!hasWebPushConfig()) {
-      setNotificationsEnabled(false);
-      const updated = updateNotificationSettings({ enabled: false });
-      void syncNotificationSettingsToCloud({ user, settings: updated });
-      setNotificationMessage(t("tasks.notificationsPushConfigMissing"));
-      return;
-    }
-
     const permission = await requestNotificationPermission();
     setNotificationPermission(permission);
 
@@ -93,13 +85,13 @@ export default function Tasks() {
       return;
     }
 
-    const subscriptionResult = await subscribeCurrentDeviceToPush({ user });
-    if (!subscriptionResult.ok) {
-      setNotificationsEnabled(false);
-      const updated = updateNotificationSettings({ enabled: false });
-      void syncNotificationSettingsToCloud({ user, settings: updated });
-      setNotificationMessage(t("tasks.notificationsPushSubscribeFailed"));
-      return;
+    // Attempt background push subscription only when VAPID key is configured.
+    if (hasWebPushConfig()) {
+      const subscriptionResult = await subscribeCurrentDeviceToPush({ user });
+      if (!subscriptionResult.ok) {
+        // Subscription failed but we still enable local (in-app) notifications.
+        setNotificationMessage(t("tasks.notificationsPushSubscribeFailed"));
+      }
     }
 
     setNotificationsEnabled(true);

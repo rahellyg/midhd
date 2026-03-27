@@ -63,7 +63,7 @@ export const updateNotificationSettings = (nextValues) => {
   return next;
 };
 
-export const syncNotificationSettingsToCloud = async ({ user, settings } = {}) => {
+export const syncNotificationSettingsToCloud = async ({ user = null, settings = null } = {}) => {
   const resolved = settings || getNotificationSettings();
 
   if (!user?.id) {
