@@ -63,9 +63,38 @@ export const updateNotificationSettings = (nextValues) => {
   return next;
 };
 
-export const syncNotificationSettingsToCloud = async (settings = getNotificationSettings()) => {
-  // Compatibility shim for older callers that still import this helper.
-  return settings;
+export const syncNotificationSettingsToCloud = async ({ user, settings } = {}) => {
+  const resolved = settings || getNotificationSettings();
+
+  if (!user?.id) {
+    return resolved;
+  }
+
+  try {
+    // Dynamic import avoids circular-dependency between lib files and apiClient.
+    const { api } = await import('@/api/apiClient');
+    const existing = await api.entities.UserNotificationSettings.filter(
+      { user_id: user.id },
+      '-updated_date',
+      1
+    );
+    const payload = {
+      enabled: Boolean(resolved.enabled),
+      time: resolved.time || '09:00',
+      user_id: user.id,
+      user_email: user.email || null,
+      last_notified_date: resolved.lastNotifiedDate || null,
+    };
+    if (existing.length > 0) {
+      await api.entities.UserNotificationSettings.update(existing[0].id, payload);
+    } else {
+      await api.entities.UserNotificationSettings.create(payload);
+    }
+  } catch {
+    // Cloud sync must never break the local notification flow.
+  }
+
+  return resolved;
 };
 
 export const requestNotificationPermission = async () => {

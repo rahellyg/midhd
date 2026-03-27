@@ -41,8 +41,8 @@ export default function DailyTaskNotifier({ isAuthenticated }) {
         const pendingToday = getTodayPendingTasks(allTasks);
         const result = await sendTodayTasksNotification(pendingToday);
         if (result.sent) {
-          markNotifiedToday();
-          syncNotificationSettingsToCloud(api.entities, user, getNotificationSettings());
+          const syncedSettings = markNotifiedToday();
+          syncNotificationSettingsToCloud({ user, settings: syncedSettings });
         }
       } catch {
         // Silent by design: reminders should not break app flow.

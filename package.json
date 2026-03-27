@@ -11,7 +11,9 @@
         "typecheck": "tsc -p ./jsconfig.json",
         "preview": "vite preview",
         "prebuild": "node scripts/set-version-env.cjs",
-        "push:server": "node scripts/push-server.mjs"
+        "push:server": "node scripts/push-server.mjs",
+        "push:keys": "node scripts/generate-vapid-keys.mjs",
+        "push:daily": "node scripts/trigger-daily-reminders.mjs"
     },
     "dependencies": {
         "@hello-pangea/dnd": "^17.0.0",

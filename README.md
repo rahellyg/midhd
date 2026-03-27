@@ -82,6 +82,12 @@ This repo now includes a small Node endpoint that sends real Web Push notificati
 cp .env.push.example .env.push
 ```
 
+On Windows PowerShell:
+
+```powershell
+Copy-Item .env.push.example .env.push
+```
+
 2. Fill required values in `.env.push`:
 
 - `WEB_PUSH_PUBLIC_KEY`
@@ -95,6 +101,18 @@ cp .env.push.example .env.push
 
 ```bash
 npm run push:server
+```
+
+Generate VAPID keys (one-time):
+
+```bash
+npm run push:keys
+```
+
+Trigger the daily reminders endpoint manually:
+
+```bash
+npm run push:daily
 ```
 
 4. Send a test push request:

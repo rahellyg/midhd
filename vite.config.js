@@ -33,7 +33,7 @@ export default defineConfig(({ command }) => {
         registerType: 'autoUpdate',
         injectRegister: false,
         manifestFilename: 'manifest.json',
-        includeAssets: ['app-icon.svg', 'app-icon-192.png', 'app-icon-512.png', 'og-home.png'],
+        includeAssets: ['app-icon.svg', 'app-icon-192.png', 'app-icon-512.png', 'og-home.png', 'push-handler.js'],
         manifest: {
           name: 'midhd – קן הריכוז',
           short_name: 'midhd',
@@ -71,7 +71,8 @@ export default defineConfig(({ command }) => {
         },
         devOptions: {
           enabled: true,
-          type: 'module'
+          // Keep classic worker in dev because push-handler uses importScripts.
+          type: 'classic'
         }
       })
     ]

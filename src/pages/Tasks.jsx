@@ -14,6 +14,7 @@ import {
   markNotifiedToday,
   requestNotificationPermission,
   sendTodayTasksNotification,
+  syncNotificationSettingsToCloud,
   updateNotificationSettings,
 } from "@/lib/dailyTaskNotifications";
 import {
@@ -75,7 +76,8 @@ export default function Tasks() {
 
     if (!hasWebPushConfig()) {
       setNotificationsEnabled(false);
-      updateNotificationSettings({ enabled: false });
+      const updated = updateNotificationSettings({ enabled: false });
+      void syncNotificationSettingsToCloud({ user, settings: updated });
       setNotificationMessage(t("tasks.notificationsPushConfigMissing"));
       return;
     }
@@ -85,7 +87,8 @@ export default function Tasks() {
 
     if (permission !== "granted") {
       setNotificationsEnabled(false);
-      updateNotificationSettings({ enabled: false });
+      const updated = updateNotificationSettings({ enabled: false });
+      void syncNotificationSettingsToCloud({ user, settings: updated });
       setNotificationMessage(t("tasks.notificationsPermissionRequired"));
       return;
     }
@@ -93,13 +96,15 @@ export default function Tasks() {
     const subscriptionResult = await subscribeCurrentDeviceToPush({ user });
     if (!subscriptionResult.ok) {
       setNotificationsEnabled(false);
-      updateNotificationSettings({ enabled: false });
+      const updated = updateNotificationSettings({ enabled: false });
+      void syncNotificationSettingsToCloud({ user, settings: updated });
       setNotificationMessage(t("tasks.notificationsPushSubscribeFailed"));
       return;
     }
 
     setNotificationsEnabled(true);
-    updateNotificationSettings({ enabled: true, time: notificationTime });
+    const updated = updateNotificationSettings({ enabled: true, time: notificationTime });
+    void syncNotificationSettingsToCloud({ user, settings: updated });
     setNotificationMessage(t("tasks.notificationsEnabled"));
   };
 
@@ -112,14 +117,16 @@ export default function Tasks() {
     }
 
     setNotificationsEnabled(false);
-    updateNotificationSettings({ enabled: false });
+    const updated = updateNotificationSettings({ enabled: false });
+    void syncNotificationSettingsToCloud({ user, settings: updated });
     setNotificationMessage(t("tasks.notificationsDisabled"));
   };
 
   const handleTimeChange = (event) => {
     const nextTime = event.target.value;
     setNotificationTime(nextTime);
-    updateNotificationSettings({ time: nextTime });
+    const updated = updateNotificationSettings({ time: nextTime });
+    void syncNotificationSettingsToCloud({ user, settings: updated });
   };
 
   const handleSendTestNotification = async () => {
@@ -130,7 +137,8 @@ export default function Tasks() {
       setNotificationMessage(t("tasks.testNotSent"));
       return;
     }
-    markNotifiedToday();
+    const updated = markNotifiedToday();
+    void syncNotificationSettingsToCloud({ user, settings: updated });
     setNotificationMessage(t("tasks.testSent"));
   };
 
