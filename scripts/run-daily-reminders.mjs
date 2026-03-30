@@ -80,6 +80,26 @@ const getLocalTimeSlot = (offsetHours = 0) => {
   return `${h}:${m}`;
 };
 
+const toMinutes = (hhmm) => {
+  const [h, m] = String(hhmm || '').split(':').map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) {
+    return null;
+  }
+  return (h * 60) + m;
+};
+
+const isInReminderWindow = (scheduledTime, currentSlot, windowMinutes = 15) => {
+  const scheduled = toMinutes(scheduledTime);
+  const now = toMinutes(currentSlot);
+  if (scheduled == null || now == null) {
+    return false;
+  }
+
+  // Handle same-day and midnight wrap-around windows.
+  const diff = (now - scheduled + 1440) % 1440;
+  return diff >= 0 && diff < windowMinutes;
+};
+
 const normalizeSubscription = (record) => {
   if (record?.subscription?.endpoint) {
     return record.subscription;
@@ -126,11 +146,10 @@ const createFirebaseStore = async () => {
 
   return {
     kind: 'firebase',
-    loadDailyReminderUsers: async (timeSlot) => {
+    loadDailyReminderUsers: async () => {
       const snapshot = await db
         .collection('UserNotificationSettings')
         .where('enabled', '==', true)
-        .where('time', '==', timeSlot)
         .get();
 
       return snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
@@ -180,7 +199,11 @@ console.log(`[run-daily-reminders] date=${todayKey} slot=${timeSlot} tz_offset=$
 let usersToNotify = [];
 try {
   const allEnabled = await store.loadDailyReminderUsers(timeSlot);
-  usersToNotify = allEnabled.filter((record) => record.last_notified_date !== todayKey);
+  usersToNotify = allEnabled.filter(
+    (record) =>
+      record.last_notified_date !== todayKey &&
+      isInReminderWindow(record.time, timeSlot, 15)
+  );
   console.log(`[run-daily-reminders] users matched for slot: ${usersToNotify.length}`);
 } catch (error) {
   console.error('[run-daily-reminders] Failed to load notification settings:', error.message);
