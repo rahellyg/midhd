@@ -89,6 +89,8 @@
     "errorFailed": "Sign-in failed. Try again.",
     "or": "or",
     "signingIn": "Signing in...",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
     "forgotPassword": "Forgot password?",
     "resetSent": "Password reset email sent. Please check your inbox.",
     "resetError": "Failed to send password reset email"

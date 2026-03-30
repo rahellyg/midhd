@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { useTranslation } from 'react-i18next';
-import { Mail } from 'lucide-react';
+import { Eye, EyeOff, Mail } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { auth, isFirebaseConfigured } from '@/lib/firebase';
@@ -10,6 +10,8 @@ import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 export default function Login() {
   const [resetSent, setResetSent] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { t, i18n } = useTranslation();
   const { signInWithEmail, isSigningIn } = useAuth();
   const navigate = useNavigate();
@@ -116,13 +118,24 @@ export default function Login() {
           </div>
           <div>
             <label className="block text-xs text-slate-500 mb-1">{t('login.password')}</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder={t('login.passwordPlaceholder')}
-              className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder={t('login.passwordPlaceholder')}
+                className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 pe-11 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute inset-y-0 end-0 flex items-center px-3 text-slate-400 hover:text-slate-600"
+                aria-label={showPassword ? t('login.hidePassword') : t('login.showPassword')}
+                title={showPassword ? t('login.hidePassword') : t('login.showPassword')}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
             <div className="flex justify-end mt-1">
               <button
                 type="button"
@@ -137,13 +150,24 @@ export default function Login() {
           {isSubscribeMode && (
             <div>
               <label className="block text-xs text-slate-500 mb-1">{t('login.confirmPassword')}</label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-                placeholder={t('login.confirmPlaceholder')}
-                className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-              />
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  placeholder={t('login.confirmPlaceholder')}
+                  className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 pe-11 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((prev) => !prev)}
+                  className="absolute inset-y-0 end-0 flex items-center px-3 text-slate-400 hover:text-slate-600"
+                  aria-label={showConfirmPassword ? t('login.hidePassword') : t('login.showPassword')}
+                  title={showConfirmPassword ? t('login.hidePassword') : t('login.showPassword')}
+                >
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
           )}
           <button
