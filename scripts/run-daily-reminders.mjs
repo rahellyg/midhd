@@ -52,6 +52,7 @@ const FIREBASE_PROJECT_ID = String(
 ).trim();
 
 const TZ_OFFSET_HOURS = Number(process.env.REMINDER_TIMEZONE_OFFSET_HOURS || 0);
+const FORCE_ALL_USERS = String(process.env.FORCE_ALL_USERS || 'false').trim().toLowerCase() === 'true';
 
 const missing = [];
 if (!PUSH_PUBLIC_KEY) missing.push('WEB_PUSH_PUBLIC_KEY or VITE_WEB_PUSH_PUBLIC_KEY');
@@ -203,6 +204,7 @@ const timeSlot = getLocalTimeSlot(TZ_OFFSET_HOURS);
 const tasksUrl = `${PUSH_APP_BASE_URL}Tasks`;
 
 console.log(`[run-daily-reminders] date=${todayKey} slot=${timeSlot} tz_offset=${TZ_OFFSET_HOURS}h`);
+console.log(`[run-daily-reminders] mode=${FORCE_ALL_USERS ? 'manual-force-all' : 'daily'}`);
 
 let usersToNotify = [];
 try {
@@ -210,7 +212,7 @@ try {
   const skippedAlreadyNotified = [];
 
   usersToNotify = allEnabled.filter((record) => {
-    if (record.last_notified_date === todayKey) {
+    if (!FORCE_ALL_USERS && record.last_notified_date === todayKey) {
       skippedAlreadyNotified.push(record);
       return false;
     }
@@ -219,8 +221,19 @@ try {
   });
 
   console.log(`[run-daily-reminders] enabled reminder docs: ${allEnabled.length}`);
+  if (allEnabled.length > 0) {
+    console.log(
+      '[run-daily-reminders] users with notifications enabled:',
+      allEnabled.slice(0, 50).map((record) => ({
+        user_email: record.user_email || null,
+        user_id: record.user_id || null,
+        enabled: Boolean(record.enabled),
+        last_notified_date: record.last_notified_date || null,
+      }))
+    );
+  }
   console.log(`[run-daily-reminders] users matched for slot: ${usersToNotify.length}`);
-  if (skippedAlreadyNotified.length > 0) {
+  if (!FORCE_ALL_USERS && skippedAlreadyNotified.length > 0) {
     console.log(
       `[run-daily-reminders] skipped already notified today: ${skippedAlreadyNotified.length}`
     );
@@ -254,7 +267,7 @@ for (const userRecord of usersToNotify) {
     );
   }
 
-  if (pendingTasks.length === 0) {
+  if (!FORCE_ALL_USERS && pendingTasks.length === 0) {
     totalNoTasks += 1;
     continue;
   }
@@ -262,9 +275,11 @@ for (const userRecord of usersToNotify) {
   const payload = JSON.stringify({
     title: 'midhd – משימות להיום',
     body:
-      pendingTasks.length === 1
-        ? `יש לך משימה אחת להיום: ${pendingTasks[0].title}`
-        : `יש לך ${pendingTasks.length} משימות להיום. פתחו את האפליקציה כדי לראות אותן.`,
+      pendingTasks.length === 0
+        ? 'תזכורת יומית: פתחו את האפליקציה כדי לראות את המשימות להיום.'
+        : pendingTasks.length === 1
+          ? `יש לך משימה אחת להיום: ${pendingTasks[0].title}`
+          : `יש לך ${pendingTasks.length} משימות להיום. פתחו את האפליקציה כדי לראות אותן.`,
     url: tasksUrl,
     tag: 'midhd-daily-tasks',
     icon: 'app-icon.svg',
@@ -278,6 +293,9 @@ for (const userRecord of usersToNotify) {
       userEmail: userRecord.user_email || undefined,
       userId: userRecord.user_id || undefined,
     });
+    console.log(
+      `[run-daily-reminders] user ${userRecord.user_email || userRecord.user_id} pending_tasks=${pendingTasks.length} subscriptions=${subscriptions.length}`
+    );
   } catch (error) {
     console.warn(
       `[run-daily-reminders] Could not load subscriptions for user ${userRecord.user_email || userRecord.user_id}:`,
@@ -295,7 +313,7 @@ for (const userRecord of usersToNotify) {
     try {
       await webpush.sendNotification(subscription, payload);
       totalSent += 1;
-      console.log(`  ✓ sent to ${subscription.endpoint.slice(0, 60)}…`);
+      console.log(`  ✓ sent to user=${userRecord.user_email || userRecord.user_id || 'unknown'} endpoint=${subscription.endpoint.slice(0, 60)}…`);
     } catch (error) {
       totalFailed += 1;
       const statusCode = Number(error?.statusCode || 0);
@@ -311,10 +329,12 @@ for (const userRecord of usersToNotify) {
     }
   }
 
-  try {
-    await store.markUserNotifiedToday(userRecord.id, todayKey);
-  } catch (error) {
-    console.warn('[run-daily-reminders] Could not mark user notified:', error.message);
+  if (!FORCE_ALL_USERS) {
+    try {
+      await store.markUserNotifiedToday(userRecord.id, todayKey);
+    } catch (error) {
+      console.warn('[run-daily-reminders] Could not mark user notified:', error.message);
+    }
   }
 }
 
