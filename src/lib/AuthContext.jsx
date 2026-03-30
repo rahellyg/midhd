@@ -232,13 +232,20 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-
-  // Google Auth temporarily disabled
   const signInWithGoogle = async () => {
-    throw new Error('Google sign-in is currently disabled.');
-  };
-  const signInWithGoogleCredential = async () => {
-    throw new Error('Google sign-in is currently disabled.');
+    setIsSigningIn(true);
+    try {
+      const currentUser = await api.auth.signInWithGoogle();
+      await ensureUserProfileExists(currentUser);
+      if (currentUser) {
+        setUser(currentUser);
+        setIsAuthenticated(true);
+      }
+      setAuthError(null);
+      return currentUser;
+    } finally {
+      setIsSigningIn(false);
+    }
   };
 
   const logout = (shouldRedirect = true) => {
@@ -270,8 +277,7 @@ export const AuthProvider = ({ children }) => {
       logout,
       isSigningIn,
       signInWithEmail,
-      // signInWithGoogle,
-      // signInWithGoogleCredential,
+      signInWithGoogle,
       navigateToLogin,
       checkAppState
     }}>

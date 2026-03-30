@@ -13,7 +13,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { t, i18n } = useTranslation();
-  const { signInWithEmail, isSigningIn } = useAuth();
+  const { signInWithEmail, signInWithGoogle, isSigningIn } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('');
@@ -77,7 +77,16 @@ export default function Login() {
     }
   };
 
-  // Google Auth temporarily disabled
+  const handleGoogleSignIn = async () => {
+    setError('');
+    setResetSent(false);
+    try {
+      await signInWithGoogle();
+      navigate('/');
+    } catch (googleError) {
+      setError(googleError?.message || t('login.errorFailed'));
+    }
+  };
 
   return (
     <div
@@ -104,6 +113,18 @@ export default function Login() {
           <span className="text-xs text-slate-400">{t('login.or')}</span>
           <div className="h-px bg-slate-200 flex-1" />
         </div>
+
+        <button
+          type="button"
+          onClick={handleGoogleSignIn}
+          disabled={isSigningIn}
+          className="mb-4 w-full flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white py-3 font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.3-1.5 3.9-5.5 3.9-3.3 0-6-2.7-6-6s2.7-6 6-6c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.8 3.6 14.6 2.7 12 2.7 6.9 2.7 2.8 6.8 2.8 12s4.1 9.3 9.2 9.3c5.3 0 8.9-3.7 8.9-8.9 0-.6-.1-1.1-.2-1.6H12z"/>
+          </svg>
+          {t('login.signInWithGoogle')}
+        </button>
 
         <form onSubmit={handleEmailSignIn} className="space-y-3">
           <div>

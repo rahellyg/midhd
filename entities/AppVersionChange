@@ -1,0 +1,26 @@
+{
+  "name": "AppVersionChange",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "App version label, e.g. 1.2.0"
+    },
+    "title": {
+      "type": ["string", "null"],
+      "description": "Optional release title"
+    },
+    "changes": {
+      "type": "string",
+      "description": "Release notes, one change per line"
+    },
+    "updated_by": {
+      "type": ["string", "null"],
+      "description": "User email that edited this release note"
+    }
+  },
+  "required": [
+    "version",
+    "changes"
+  ]
+}

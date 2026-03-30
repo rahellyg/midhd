@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { getContactReceiverEmail, sendContactEmail } from "@/lib/contactEmail";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { toast } from "@/components/ui/use-toast";
+import { APP_VERSION, APP_VERSION_FEATURES } from "@/version";
 
 export default function Dashboard() {
   const { t, i18n } = useTranslation();
@@ -49,6 +50,12 @@ export default function Dashboard() {
     { value: "50+", label: t('dashboard.stats_tools') },
     { value: "24/7", label: t('dashboard.stats_support') },
   ];
+  const versionFeatures = [
+    t('dashboard.versionFeature1'),
+    t('dashboard.versionFeature2'),
+    t('dashboard.versionFeature3'),
+    t('dashboard.versionFeature4'),
+  ].filter((line) => typeof line === 'string' && line.trim().length > 0);
 
   useEffect(() => {
     const isIos = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
@@ -178,7 +185,7 @@ export default function Dashboard() {
                 <img src={`${import.meta.env.BASE_URL}app-icon.svg`} alt="Midhd logo" className="h-10 w-10 rounded-xl" />
                 <span className="text-xl font-bold">Midhd</span>
               </div>
-              <span className="text-xs text-[#6B9B8A] mt-0.5">{t('dashboard.version', { version: '0.0.8' })}</span>
+              <span className="text-xs text-[#6B9B8A] mt-0.5">{t('dashboard.version', { version: APP_VERSION })}</span>
             </div>
 
             <div className="hidden items-center gap-6 md:flex">
@@ -367,6 +374,35 @@ export default function Dashboard() {
                   <p className="text-[#6B9B8A]">{description}</p>
                 </article>
               ))}
+            </section>
+
+            <section className="landing-fade-in mt-16 rounded-3xl bg-white p-8 shadow-sm" id="version-changes">
+              <div className="mb-5 flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-[#2D5A4A]">{t('dashboard.versionChangesTitle')}</h2>
+                  <p className="text-sm text-[#6B9B8A]">{t('dashboard.versionChangesSubtitle')}</p>
+                </div>
+                <div className="rounded-full bg-[#2D5A4A1A] px-3 py-1 text-xs font-semibold text-[#2D5A4A]">
+                  {t('dashboard.version', { version: APP_VERSION })}
+                </div>
+              </div>
+              {(versionFeatures.length || APP_VERSION_FEATURES.length) === 0 ? (
+                <p className="text-sm text-[#6B9B8A]">{t('dashboard.versionChangesEmpty')}</p>
+              ) : (
+                <div className="space-y-3">
+                  <article className="rounded-2xl border border-[#2D5A4A1A] bg-white p-4">
+                    <div className="mb-2">
+                      <h3 className="font-semibold text-[#2D5A4A]">{t('dashboard.versionChangesDefaultTitle')}</h3>
+                      <p className="text-xs text-[#6B9B8A]">{t('dashboard.version', { version: APP_VERSION })}</p>
+                    </div>
+                    <ul className="list-disc ps-5 space-y-1 text-sm text-[#4A7A6A]">
+                      {(versionFeatures.length ? versionFeatures : APP_VERSION_FEATURES).map((line, index) => (
+                        <li key={`feature-${index}`}>{line}</li>
+                      ))}
+                    </ul>
+                  </article>
+                </div>
+              )}
             </section>
 
             <section className="landing-fade-in mt-16 rounded-3xl bg-[#2D5A4A] p-8 md:p-12" id="contact">

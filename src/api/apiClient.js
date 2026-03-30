@@ -473,7 +473,40 @@ export const api = {
       return sessionUser;
     },
     signInWithGoogle: async () => {
-      throw new ApiError('Google sign-in is not implemented for Firebase-only mode.', 501, null);
+      if (!isFirebaseConfigured) {
+        throw new ApiError('Firebase is not configured. Cannot login with Google.', 503, null);
+      }
+
+      const { auth } = await import('@/lib/firebase');
+      const { GoogleAuthProvider, signInWithPopup } = await import('firebase/auth');
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+
+      let userCredential;
+      try {
+        userCredential = await signInWithPopup(auth, provider);
+      } catch (err) {
+        if (err.code === 'auth/popup-closed-by-user') {
+          throw new ApiError('Google sign-in was cancelled.', 400, null);
+        }
+        if (err.code === 'auth/popup-blocked') {
+          throw new ApiError('Popup was blocked by the browser. Please allow popups and try again.', 400, null);
+        }
+        if (err.code === 'auth/operation-not-allowed') {
+          throw new ApiError('Google sign-in is not enabled in Firebase Console.', 503, null);
+        }
+        throw new ApiError(err.message || 'Google sign-in failed. Try again.', 400, null);
+      }
+
+      const sessionUser = {
+        id: userCredential.user.uid,
+        email: userCredential.user.email,
+        full_name: userCredential.user.displayName || userCredential.user.email || 'Google User',
+        provider: 'google',
+      };
+      setLocalAuthSession(sessionUser);
+      void logAuthEvent({ eventType: 'login', user: sessionUser, provider: 'google' }).catch(() => {});
+      return sessionUser;
     },
     signInWithGoogleCredential: async (credentialToken) => {
       ensureLocalFallbackEnabled();
