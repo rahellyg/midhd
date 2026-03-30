@@ -486,6 +486,9 @@ export const api = {
       try {
         userCredential = await signInWithPopup(auth, provider);
       } catch (err) {
+        if (err.code === 'auth/unauthorized-domain') {
+          throw new ApiError('This domain is not authorized for Google sign-in. Add it in Firebase Console → Authentication → Settings → Authorized domains.', 403, null);
+        }
         if (err.code === 'auth/popup-closed-by-user') {
           throw new ApiError('Google sign-in was cancelled.', 400, null);
         }
