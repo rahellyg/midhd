@@ -42,6 +42,14 @@ const normalizeToQuarterHour = (timeValue) => {
   return `${hours}:${minutes}`;
 };
 
+const getLocalDateKey = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 export default function Tasks() {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
@@ -194,7 +202,7 @@ export default function Tasks() {
     return sMatch && pMatch && typeMatch;
   });
 
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = getLocalDateKey();
   const todayTasks = filtered.filter(t => !t.scheduled_date || t.scheduled_date === todayStr);
   const otherTasks = filtered.filter(t => t.scheduled_date && t.scheduled_date !== todayStr);
   const otherTaskGroups = Object.entries(

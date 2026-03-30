@@ -9,6 +9,12 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { toast } from "@/components/ui/use-toast";
 import { APP_VERSION, APP_VERSION_FEATURES } from "@/version";
 
+const formatLocalClock = (language) => new Intl.DateTimeFormat(language || undefined, {
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+}).format(new Date());
+
 export default function Dashboard() {
   const { t, i18n } = useTranslation();
   const { isAuthenticated, user, logout } = useAuth();
@@ -25,6 +31,7 @@ export default function Dashboard() {
   const [installPromptEvent, setInstallPromptEvent] = useState(null);
   const [isStandalone, setIsStandalone] = useState(false);
   const [showIosInstallHint, setShowIosInstallHint] = useState(false);
+  const [localTime, setLocalTime] = useState(() => formatLocalClock(i18n.language));
   const shouldShowInstallButton = !isStandalone;
 
   const userName = user?.full_name || user?.name || user?.email || (i18n.language === 'he' ? 'הפרופיל שלי' : 'My profile');
@@ -84,6 +91,17 @@ export default function Dashboard() {
       window.removeEventListener("appinstalled", handleAppInstalled);
     };
   }, []);
+
+  useEffect(() => {
+    setLocalTime(formatLocalClock(i18n.language));
+    const intervalId = window.setInterval(() => {
+      setLocalTime(formatLocalClock(i18n.language));
+    }, 1000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [i18n.language]);
 
   useEffect(() => {
     setContactForm((prev) => ({
@@ -186,6 +204,7 @@ export default function Dashboard() {
                 <span className="text-xl font-bold">Midhd</span>
               </div>
               <span className="text-xs text-[#6B9B8A] mt-0.5">{t('dashboard.version', { version: APP_VERSION })}</span>
+              <span className="text-xs text-[#6B9B8A]">{t('dashboard.localTime', { time: localTime })}</span>
             </div>
 
             <div className="hidden items-center gap-6 md:flex">

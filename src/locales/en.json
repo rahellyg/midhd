@@ -10,6 +10,7 @@
     "signup": "Sign up",
     "quickSignup": "Quick sign up",
     "version": "Version {{version}}",
+    "localTime": "Local time: {{time}}",
     "personalized": "Tailored for you",
     "title1": "Your place",
     "title2": "to focus and succeed",

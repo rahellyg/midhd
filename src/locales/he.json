@@ -43,6 +43,7 @@
     "pages": { "tasks": "משימות", "focus": "פוקוס", "calm": "רגיעה", "dopamine": "דופמין", "forum": "פורום", "aihelp": "עזרת AI", "dailycheckin": "שאלון יומי" },
     "myProfile": "הפרופיל שלי",
     "version": "גרסה: {{version}}",
+    "localTime": "שעה מקומית: {{time}}",
     "features": "תכונות",
     "about": "אודות",
    

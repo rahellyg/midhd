@@ -4,6 +4,14 @@ import { api } from "@/api/apiClient";
 import { useAuth } from "@/lib/AuthContext";
 import { X, Plus, Minus } from "lucide-react";
 
+const getLocalDateKey = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 const getDefaultForm = () => ({
   title: "",
   description: "",
@@ -12,7 +20,7 @@ const getDefaultForm = () => ({
   task_type: "other",
   estimated_minutes: 25,
   steps: [],
-  scheduled_date: new Date().toISOString().split("T")[0],
+  scheduled_date: getLocalDateKey(),
 });
 
 const buildFormFromTask = (taskToEdit) => {
