@@ -17,6 +17,40 @@ const DEV_MOCK_USER = {
   provider: 'dev',
 };
 
+const ensureUserProfileExists = async (currentUser) => {
+  const normalizedEmail = String(currentUser?.email || '').trim().toLowerCase();
+  if (!normalizedEmail) {
+    return;
+  }
+
+  try {
+    const existingProfiles = await api.entities.UserProfile.filter(
+      { user_email: normalizedEmail },
+      'user_email',
+      1
+    );
+
+    if (Array.isArray(existingProfiles) && existingProfiles.length > 0) {
+      return;
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    await api.entities.UserProfile.create({
+      user_email: normalizedEmail,
+      daily_task_goal: 3,
+      daily_focus_goal_minutes: 50,
+      streak_days: 1,
+      last_active_date: today,
+      longest_streak: 1,
+      total_tasks_done: 0,
+      total_focus_minutes: 0,
+      display_name: currentUser?.full_name || currentUser?.name || normalizedEmail,
+    });
+  } catch (error) {
+    console.warn('UserProfile auto-create failed.', error);
+  }
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -117,6 +151,7 @@ export const AuthProvider = ({ children }) => {
       const currentUser = await api.auth.me();
 
       // Only Firebase authentication is allowed; no cloud event tracking
+      await ensureUserProfileExists(currentUser);
 
       setUser(currentUser);
       setIsAuthenticated(true);
@@ -185,6 +220,7 @@ export const AuthProvider = ({ children }) => {
         password,
         mode,
       });
+      await ensureUserProfileExists(currentUser);
       if (currentUser) {
         setUser(currentUser);
         setIsAuthenticated(true);

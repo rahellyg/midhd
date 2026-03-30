@@ -73,11 +73,6 @@ export const syncNotificationSettingsToCloud = async ({ user = null, settings = 
   try {
     // Dynamic import avoids circular-dependency between lib files and apiClient.
     const { api } = await import('@/api/apiClient');
-    const existing = await api.entities.UserNotificationSettings.filter(
-      { user_id: user.id },
-      '-updated_date',
-      1
-    );
     const payload = {
       enabled: Boolean(resolved.enabled),
       time: resolved.time || '09:00',
@@ -85,13 +80,26 @@ export const syncNotificationSettingsToCloud = async ({ user = null, settings = 
       user_email: user.email || null,
       last_notified_date: resolved.lastNotifiedDate || null,
     };
+
+    let existing = [];
+    try {
+      existing = await api.entities.UserNotificationSettings.filter(
+        { user_id: user.id },
+        'user_id',
+        1
+      );
+    } catch (lookupError) {
+      console.warn('UserNotificationSettings lookup failed, creating a new document instead.', lookupError);
+    }
+
     if (existing.length > 0) {
       await api.entities.UserNotificationSettings.update(existing[0].id, payload);
     } else {
       await api.entities.UserNotificationSettings.create(payload);
     }
-  } catch {
+  } catch (syncError) {
     // Cloud sync must never break the local notification flow.
+    console.warn('UserNotificationSettings sync failed.', syncError);
   }
 
   return resolved;
