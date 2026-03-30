@@ -59,7 +59,22 @@
     "contactErrorFileTooLarge": "הקובץ גדול מדי. אפשר להעלות עד 10MB.",
     "contactSuccess": "ההודעה נשלחה בהצלחה. נחזור אליך בהקדם.",
     "contactErrorMissingConfig": "השליחה לא מוגדרת עדיין. יש להגדיר EmailJS בסביבת הפרויקט.",
-    "contactErrorFailed": "שליחת ההודעה נכשלה. נסה שוב בעוד רגע."
+    "contactErrorFailed": "שליחת ההודעה נכשלה. נסה שוב בעוד רגע.",
+    "archiveTitle": "ארכיון",
+    "archiveSubtitle": "תמונות וסרטונים שמשתמשים שיתפו",
+    "archiveTitlePlaceholder": "כותרת (אופציונלי)",
+    "archiveUrlPlaceholder": "הדבק קישור לתמונה/סרטון",
+    "archiveTypeAuto": "אוטומטי",
+    "archiveTypeImage": "תמונה",
+    "archiveTypeVideo": "וידאו",
+    "archiveAdd": "הוסף",
+    "archiveAdding": "מוסיף...",
+    "archiveAdded": "נוסף לארכיון.",
+    "archiveAddFailed": "הוספה לארכיון נכשלה.",
+    "archiveInvalidUrl": "נא להזין כתובת קישור תקינה.",
+    "archiveEmpty": "אין עדיין מדיה בארכיון.",
+    "archiveOpenLink": "פתח קישור",
+    "archiveUntitled": "ללא כותרת"
   },
   "nav": {
     "home": "בית",

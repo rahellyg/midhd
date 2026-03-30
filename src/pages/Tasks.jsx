@@ -28,6 +28,20 @@ const filterKeys = ["all", "todo", "in_progress", "done"];
 const priorityKeys = ["all", "high", "medium", "low"];
 const taskTypeKeys = ["all", "work", "home", "personal_development", "other"];
 
+const normalizeToQuarterHour = (timeValue) => {
+  const [rawHours, rawMinutes] = String(timeValue || "09:00").split(":").map(Number);
+  if (Number.isNaN(rawHours) || Number.isNaN(rawMinutes)) {
+    return "09:00";
+  }
+
+  const totalMinutes = (rawHours * 60) + rawMinutes;
+  const rounded = Math.round(totalMinutes / 15) * 15;
+  const normalized = ((rounded % 1440) + 1440) % 1440;
+  const hours = String(Math.floor(normalized / 60)).padStart(2, "0");
+  const minutes = String(normalized % 60).padStart(2, "0");
+  return `${hours}:${minutes}`;
+};
+
 export default function Tasks() {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
@@ -64,7 +78,7 @@ export default function Tasks() {
 
     const settings = getNotificationSettings();
     setNotificationsEnabled(Boolean(settings.enabled));
-    setNotificationTime(settings.time || "09:00");
+    setNotificationTime(normalizeToQuarterHour(settings.time || "09:00"));
     setNotificationPermission(getNotificationPermission());
   }, []);
 
@@ -94,8 +108,10 @@ export default function Tasks() {
       }
     }
 
+    const normalizedTime = normalizeToQuarterHour(notificationTime);
     setNotificationsEnabled(true);
-    const updated = updateNotificationSettings({ enabled: true, time: notificationTime });
+    setNotificationTime(normalizedTime);
+    const updated = updateNotificationSettings({ enabled: true, time: normalizedTime });
     void syncNotificationSettingsToCloud({ user, settings: updated });
     setNotificationMessage(t("tasks.notificationsEnabled"));
   };
@@ -115,7 +131,7 @@ export default function Tasks() {
   };
 
   const handleTimeChange = (event) => {
-    const nextTime = event.target.value;
+    const nextTime = normalizeToQuarterHour(event.target.value);
     setNotificationTime(nextTime);
     const updated = updateNotificationSettings({ time: nextTime });
     void syncNotificationSettingsToCloud({ user, settings: updated });
@@ -247,6 +263,7 @@ export default function Tasks() {
               type="time"
               value={notificationTime}
               onChange={handleTimeChange}
+              step="900"
               className="mt-1 w-full bg-white/80 rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
             />
           </label>

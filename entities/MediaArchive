@@ -1,0 +1,30 @@
+{
+  "name": "MediaArchive",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Media title"
+    },
+    "url": {
+      "type": "string",
+      "description": "Public URL to image or video"
+    },
+    "media_type": {
+      "type": "string",
+      "enum": [
+        "image",
+        "video",
+        "link"
+      ],
+      "default": "link"
+    },
+    "submitted_by": {
+      "type": "string",
+      "description": "Email of user who submitted the link"
+    }
+  },
+  "required": [
+    "url"
+  ]
+}
