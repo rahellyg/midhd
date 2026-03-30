@@ -32,11 +32,13 @@ jobs:
           WEB_PUSH_PRIVATE_KEY: ${{ secrets.WEB_PUSH_PRIVATE_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         run: |
           test -n "$VITE_WEB_PUSH_PUBLIC_KEY" || (echo "Missing VITE_WEB_PUSH_PUBLIC_KEY" && exit 1)
           test -n "$WEB_PUSH_PRIVATE_KEY" || (echo "Missing WEB_PUSH_PRIVATE_KEY" && exit 1)
-          test -n "$SUPABASE_URL" || (echo "Missing SUPABASE_URL" && exit 1)
-          test -n "$SUPABASE_SERVICE_ROLE_KEY" || (echo "Missing SUPABASE_SERVICE_ROLE_KEY" && exit 1)
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            test -n "$FIREBASE_SERVICE_ACCOUNT_JSON" || (echo "Missing Supabase secrets and FIREBASE_SERVICE_ACCOUNT_JSON" && exit 1)
+          fi
 
       - name: Send Daily Push Reminders
         env:
@@ -45,6 +47,11 @@ jobs:
           WEB_PUSH_SUBJECT:     ${{ secrets.WEB_PUSH_SUBJECT }}
           SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          SUPABASE_SCHEMA: ${{ secrets.SUPABASE_SCHEMA }}
+          SUPABASE_PUSH_SUBSCRIPTIONS_TABLE: ${{ secrets.SUPABASE_PUSH_SUBSCRIPTIONS_TABLE }}
+          SUPABASE_NOTIFICATION_SETTINGS_TABLE: ${{ secrets.SUPABASE_NOTIFICATION_SETTINGS_TABLE }}
           PUSH_APP_BASE_URL:    ${{ secrets.PUSH_APP_BASE_URL }}
           # Timezone offset in hours (e.g. 3 for Israel UTC+3).
           # Users' reminder times are stored in this timezone.
