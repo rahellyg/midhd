@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
  * Standalone daily-reminders sender using Firebase Admin.
- * Sends Web Push notifications to users whose reminder time matches the
- * current time slot.
+ * Sends Web Push notifications to users who have pending tasks for today.
+ * Time of day is ignored; each eligible user is notified at most once per day.
  *
  * Run directly (e.g. from GitHub Actions every 15 min):
  *   node scripts/run-daily-reminders.mjs
@@ -80,24 +80,10 @@ const getLocalTimeSlot = (offsetHours = 0) => {
   return `${h}:${m}`;
 };
 
-const toMinutes = (hhmm) => {
-  const [h, m] = String(hhmm || '').split(':').map(Number);
-  if (Number.isNaN(h) || Number.isNaN(m)) {
-    return null;
-  }
-  return (h * 60) + m;
-};
-
-const isInReminderWindow = (scheduledTime, currentSlot, windowMinutes = 15) => {
-  const scheduled = toMinutes(scheduledTime);
-  const now = toMinutes(currentSlot);
-  if (scheduled == null || now == null) {
-    return false;
-  }
-
-  // Handle same-day and midnight wrap-around windows.
-  const diff = (now - scheduled + 1440) % 1440;
-  return diff >= 0 && diff < windowMinutes;
+const isTaskForToday = (task, todayKey) => {
+  const isDone = task?.status === 'done';
+  const isForToday = !task?.scheduled_date || task.scheduled_date === todayKey;
+  return !isDone && isForToday;
 };
 
 const normalizeSubscription = (record) => {
@@ -172,6 +158,28 @@ const createFirebaseStore = async () => {
           return true;
         });
     },
+    loadTodayPendingTasks: async ({ userEmail, userId, todayKey }) => {
+      if (userEmail) {
+        const snapshot = await db
+          .collection('Task')
+          .where('user_email', '==', String(userEmail).toLowerCase())
+          .get();
+
+        return snapshot.docs
+          .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
+          .filter((task) => isTaskForToday(task, todayKey));
+      }
+
+      if (userId) {
+        const snapshot = await db.collection('Task').get();
+        return snapshot.docs
+          .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
+          .filter((task) => String(task.user_id || '') === String(userId))
+          .filter((task) => isTaskForToday(task, todayKey));
+      }
+
+      return [];
+    },
     markSubscriptionInvalid: async (recordId) => {
       await db.collection('PushSubscription').doc(recordId).update({
         enabled: false,
@@ -199,67 +207,71 @@ console.log(`[run-daily-reminders] date=${todayKey} slot=${timeSlot} tz_offset=$
 let usersToNotify = [];
 try {
   const allEnabled = await store.loadDailyReminderUsers(timeSlot);
-    const skippedAlreadyNotified = [];
-    const skippedOutsideWindow = [];
+  const skippedAlreadyNotified = [];
 
-    usersToNotify = allEnabled.filter((record) => {
-      if (record.last_notified_date === todayKey) {
-        skippedAlreadyNotified.push(record);
-        return false;
-      }
+  usersToNotify = allEnabled.filter((record) => {
+    if (record.last_notified_date === todayKey) {
+      skippedAlreadyNotified.push(record);
+      return false;
+    }
 
-      if (!isInReminderWindow(record.time, timeSlot, 15)) {
-        skippedOutsideWindow.push(record);
-        return false;
-      }
+    return true;
+  });
 
-      return true;
-    });
-
-    console.log(`[run-daily-reminders] enabled reminder docs: ${allEnabled.length}`);
+  console.log(`[run-daily-reminders] enabled reminder docs: ${allEnabled.length}`);
   console.log(`[run-daily-reminders] users matched for slot: ${usersToNotify.length}`);
-    if (skippedAlreadyNotified.length > 0) {
-      console.log(
-        `[run-daily-reminders] skipped already notified today: ${skippedAlreadyNotified.length}`
-      );
-    }
-    if (skippedOutsideWindow.length > 0) {
-      console.log(
-        `[run-daily-reminders] skipped outside 15-minute window: ${skippedOutsideWindow.length}`
-      );
-      console.log(
-        '[run-daily-reminders] sample skipped times:',
-        skippedOutsideWindow.slice(0, 10).map((record) => ({
-          user_email: record.user_email || null,
-          time: record.time || null,
-          last_notified_date: record.last_notified_date || null,
-        }))
-      );
-    }
+  if (skippedAlreadyNotified.length > 0) {
+    console.log(
+      `[run-daily-reminders] skipped already notified today: ${skippedAlreadyNotified.length}`
+    );
+  }
 } catch (error) {
   console.error('[run-daily-reminders] Failed to load notification settings:', error.message);
   process.exit(1);
 }
 
 if (usersToNotify.length === 0) {
-  console.log('[run-daily-reminders] No users to notify at this time slot. Done.');
+  console.log('[run-daily-reminders] No users to notify today. Done.');
   process.exit(0);
 }
 
-const payload = JSON.stringify({
-  title: 'midhd – משימות להיום',
-  body: 'פתחו את האפליקציה כדי לראות את המשימות להיום.',
-  url: tasksUrl,
-  tag: 'midhd-daily-tasks',
-  icon: 'app-icon.svg',
-  badge: 'app-icon.svg',
-  data: { url: tasksUrl },
-});
-
 let totalSent = 0;
 let totalFailed = 0;
+let totalNoTasks = 0;
 
 for (const userRecord of usersToNotify) {
+  let pendingTasks = [];
+  try {
+    pendingTasks = await store.loadTodayPendingTasks({
+      userEmail: userRecord.user_email || undefined,
+      userId: userRecord.user_id || undefined,
+      todayKey,
+    });
+  } catch (error) {
+    console.warn(
+      `[run-daily-reminders] Could not load tasks for user ${userRecord.user_email || userRecord.user_id}:`,
+      error.message
+    );
+  }
+
+  if (pendingTasks.length === 0) {
+    totalNoTasks += 1;
+    continue;
+  }
+
+  const payload = JSON.stringify({
+    title: 'midhd – משימות להיום',
+    body:
+      pendingTasks.length === 1
+        ? `יש לך משימה אחת להיום: ${pendingTasks[0].title}`
+        : `יש לך ${pendingTasks.length} משימות להיום. פתחו את האפליקציה כדי לראות אותן.`,
+    url: tasksUrl,
+    tag: 'midhd-daily-tasks',
+    icon: 'app-icon.svg',
+    badge: 'app-icon.svg',
+    data: { url: tasksUrl, pendingTasksCount: pendingTasks.length },
+  });
+
   let subscriptions = [];
   try {
     subscriptions = await store.loadEnabledSubscriptions({
@@ -306,5 +318,5 @@ for (const userRecord of usersToNotify) {
   }
 }
 
-console.log(`[run-daily-reminders] Done. sent=${totalSent} failed=${totalFailed}`);
+console.log(`[run-daily-reminders] Done. sent=${totalSent} failed=${totalFailed} no_tasks=${totalNoTasks}`);
 process.exit(0);
