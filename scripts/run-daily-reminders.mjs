@@ -222,9 +222,11 @@ const store = await createFirebaseStore();
 const todayKey = getTodayKey(TZ_OFFSET_HOURS);
 const timeSlot = getLocalTimeSlot(TZ_OFFSET_HOURS);
 const tasksUrl = `${PUSH_APP_BASE_URL}Tasks`;
+const runStartedAt = new Date().toISOString();
 
 console.log(`[run-daily-reminders] date=${todayKey} slot=${timeSlot} tz_offset=${TZ_OFFSET_HOURS}h`);
 console.log(`[run-daily-reminders] mode=${FORCE_ALL_USERS ? 'manual-force-all' : 'daily'}`);
+console.log(`[run-daily-reminders] started_at=${runStartedAt}`);
 
 let usersToNotify = [];
 try {
@@ -282,8 +284,21 @@ if (usersToNotify.length === 0) {
 let totalSent = 0;
 let totalFailed = 0;
 let totalNoTasks = 0;
+const sentRecipients = [];
+const failedRecipients = [];
+const skippedNoTaskRecipients = [];
+
+console.log(
+  '[run-daily-reminders] matched users:',
+  usersToNotify.map((userRecord) => ({
+    user_email: userRecord.user_email || null,
+    user_id: userRecord.user_id || null,
+    reminder_time: userRecord.time || null,
+  }))
+);
 
 for (const userRecord of usersToNotify) {
+  const userLabel = userRecord.user_email || userRecord.user_id || 'unknown';
   let pendingTasks = [];
   try {
     pendingTasks = await store.loadTodayPendingTasks({
@@ -300,6 +315,8 @@ for (const userRecord of usersToNotify) {
 
   if (!FORCE_ALL_USERS && pendingTasks.length === 0) {
     totalNoTasks += 1;
+    skippedNoTaskRecipients.push(userLabel);
+    console.log(`[run-daily-reminders] skipped user=${userLabel} reason=no_tasks`);
     continue;
   }
 
@@ -325,29 +342,37 @@ for (const userRecord of usersToNotify) {
       userId: userRecord.user_id || undefined,
     });
     console.log(
-      `[run-daily-reminders] user ${userRecord.user_email || userRecord.user_id} pending_tasks=${pendingTasks.length} subscriptions=${subscriptions.length}`
+      `[run-daily-reminders] user=${userLabel} pending_tasks=${pendingTasks.length} subscriptions=${subscriptions.length}`
     );
   } catch (error) {
     console.warn(
-      `[run-daily-reminders] Could not load subscriptions for user ${userRecord.user_email || userRecord.user_id}:`,
+      `[run-daily-reminders] Could not load subscriptions for user ${userLabel}:`,
       error.message
     );
+  }
+
+  if (subscriptions.length === 0) {
+    console.log(`[run-daily-reminders] skipped user=${userLabel} reason=no_subscriptions`);
   }
 
   for (const sub of subscriptions) {
     const subscription = normalizeSubscription(sub);
     if (!subscription) {
       totalFailed += 1;
+      failedRecipients.push(`${userLabel} (invalid_subscription_record)`);
       continue;
     }
 
     try {
       await webpush.sendNotification(subscription, payload);
       totalSent += 1;
-      console.log(`  ✓ sent to user=${userRecord.user_email || userRecord.user_id || 'unknown'} endpoint=${subscription.endpoint.slice(0, 60)}…`);
+      sentRecipients.push(userLabel);
+      const sentAt = new Date().toISOString();
+      console.log(`  ✓ sent_at=${sentAt} user=${userLabel} endpoint=${subscription.endpoint.slice(0, 60)}…`);
     } catch (error) {
       totalFailed += 1;
       const statusCode = Number(error?.statusCode || 0);
+      failedRecipients.push(`${userLabel} (${statusCode || 'unknown'})`);
       console.warn(`  ✗ failed (${statusCode}): ${error.message}`);
 
       if (statusCode === 404 || statusCode === 410) {
@@ -370,4 +395,14 @@ for (const userRecord of usersToNotify) {
 }
 
 console.log(`[run-daily-reminders] Done. sent=${totalSent} failed=${totalFailed} no_tasks=${totalNoTasks}`);
+console.log(`[run-daily-reminders] finished_at=${new Date().toISOString()}`);
+if (sentRecipients.length > 0) {
+  console.log('[run-daily-reminders] sent recipients:', [...new Set(sentRecipients)]);
+}
+if (failedRecipients.length > 0) {
+  console.log('[run-daily-reminders] failed recipients:', failedRecipients);
+}
+if (skippedNoTaskRecipients.length > 0) {
+  console.log('[run-daily-reminders] skipped no-task recipients:', skippedNoTaskRecipients);
+}
 process.exit(0);
