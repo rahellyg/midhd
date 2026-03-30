@@ -14,6 +14,21 @@ const formatLocalClock = (language) => new Intl.DateTimeFormat(language || undef
   minute: "2-digit",
   second: "2-digit",
 }).format(new Date());
+55
+const resolveVersionFeatureText = (feature, language) => {
+  if (typeof feature === "string") {
+    return feature;
+  }
+
+  if (feature && typeof feature === "object") {
+    if (language === "he") {
+      return feature.he || feature.en || "";
+    }
+    return feature.en || feature.he || "";
+  }
+
+  return "";
+};
 
 export default function Dashboard() {
   const { t, i18n } = useTranslation();
@@ -57,13 +72,6 @@ export default function Dashboard() {
     { value: "50+", label: t('dashboard.stats_tools') },
     { value: "24/7", label: t('dashboard.stats_support') },
   ];
-  const versionFeatures = [
-    t('dashboard.versionFeature1'),
-    t('dashboard.versionFeature2'),
-    t('dashboard.versionFeature3'),
-    t('dashboard.versionFeature4'),
-  ].filter((line) => typeof line === 'string' && line.trim().length > 0);
-
   useEffect(() => {
     const isIos = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
     const standaloneDisplayMode = window.matchMedia?.("(display-mode: standalone)")?.matches;
@@ -210,6 +218,7 @@ export default function Dashboard() {
             <div className="hidden items-center gap-6 md:flex">
               <LanguageSwitcher />
               <a href="#features" className="font-medium transition-opacity hover:opacity-70">{t('dashboard.features')}</a>
+              <a href="#version-changes" className="font-medium transition-opacity hover:opacity-70">{t('dashboard.versionChangesTitle')}</a>
               <a href="#about" className="font-medium transition-opacity hover:opacity-70">{t('dashboard.about')}</a>
               <a href="#contact" className="font-medium transition-opacity hover:opacity-70">{t('dashboard.contactTitle')}</a>
             </div>
@@ -405,7 +414,7 @@ export default function Dashboard() {
                   {t('dashboard.version', { version: APP_VERSION })}
                 </div>
               </div>
-              {(versionFeatures.length || APP_VERSION_FEATURES.length) === 0 ? (
+              {APP_VERSION_FEATURES.length === 0 ? (
                 <p className="text-sm text-[#6B9B8A]">{t('dashboard.versionChangesEmpty')}</p>
               ) : (
                 <div className="space-y-3">
@@ -415,9 +424,12 @@ export default function Dashboard() {
                       <p className="text-xs text-[#6B9B8A]">{t('dashboard.version', { version: APP_VERSION })}</p>
                     </div>
                     <ul className="list-disc ps-5 space-y-1 text-sm text-[#4A7A6A]">
-                      {(versionFeatures.length ? versionFeatures : APP_VERSION_FEATURES).map((line, index) => (
-                        <li key={`feature-${index}`}>{line}</li>
-                      ))}
+                      {APP_VERSION_FEATURES
+                        .map((feature) => resolveVersionFeatureText(feature, i18n.language))
+                        .filter((line) => typeof line === "string" && line.trim().length > 0)
+                        .map((line, index) => (
+                          <li key={`feature-${index}`}>{line}</li>
+                        ))}
                     </ul>
                   </article>
                 </div>

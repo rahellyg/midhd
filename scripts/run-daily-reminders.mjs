@@ -89,16 +89,16 @@ const toMinutes = (hhmm) => {
   return (h * 60) + m;
 };
 
-const isInReminderWindow = (scheduledTime, currentSlot, windowMinutes = 15) => {
+const isDueNowOrEarlierToday = (scheduledTime, currentSlot) => {
   const scheduled = toMinutes(scheduledTime);
   const now = toMinutes(currentSlot);
   if (scheduled == null || now == null) {
     return false;
   }
 
-  // Handle same-day and midnight wrap-around windows.
-  const diff = (now - scheduled + 1440) % 1440;
-  return diff >= 0 && diff < windowMinutes;
+  // If GitHub cron is delayed, still send once per day as long as current local time
+  // is at or after the user's selected reminder time.
+  return now >= scheduled;
 };
 
 const isTaskForToday = (task, todayKey) => {
@@ -240,7 +240,7 @@ try {
       return false;
     }
 
-    if (!FORCE_ALL_USERS && !isInReminderWindow(record.time, timeSlot, 15)) {
+    if (!FORCE_ALL_USERS && !isDueNowOrEarlierToday(record.time, timeSlot)) {
       skippedOutsideWindow.push(record);
       return false;
     }
@@ -268,7 +268,7 @@ try {
   }
   if (!FORCE_ALL_USERS && skippedOutsideWindow.length > 0) {
     console.log(
-      `[run-daily-reminders] skipped outside 15-minute window: ${skippedOutsideWindow.length}`
+      `[run-daily-reminders] skipped before reminder time: ${skippedOutsideWindow.length}`
     );
   }
 } catch (error) {
