@@ -1,15 +1,22 @@
 #!/usr/bin/env node
 /**
- * Standalone daily-reminders sender.
+ * Standalone daily-reminders sender using Firebase Admin.
  * Sends Web Push notifications to users whose reminder time matches the
  * current time slot.
  *
- * Data source priority:
- * 1. Supabase, if SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY are set
- * 2. Firebase Admin, if FIREBASE_SERVICE_ACCOUNT_JSON/FILE is set
- *
  * Run directly (e.g. from GitHub Actions every 15 min):
  *   node scripts/run-daily-reminders.mjs
+ *
+ * Required env vars:
+ *   WEB_PUSH_PUBLIC_KEY (or VITE_WEB_PUSH_PUBLIC_KEY)
+ *   WEB_PUSH_PRIVATE_KEY
+ *   FIREBASE_SERVICE_ACCOUNT_JSON or FIREBASE_SERVICE_ACCOUNT_FILE
+ *
+ * Optional env vars:
+ *   WEB_PUSH_SUBJECT
+ *   PUSH_APP_BASE_URL
+ *   FIREBASE_PROJECT_ID
+ *   REMINDER_TIMEZONE_OFFSET_HOURS
  */
 
 import fs from 'node:fs';
@@ -44,25 +51,13 @@ const FIREBASE_PROJECT_ID = String(
   process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || ''
 ).trim();
 
-const SUPABASE_URL = String(process.env.SUPABASE_URL || '').trim().replace(/\/$/, '');
-const SUPABASE_SERVICE_ROLE_KEY = String(process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
-const SUPABASE_SCHEMA = String(process.env.SUPABASE_SCHEMA || 'public').trim();
-const SUPABASE_PUSH_SUBSCRIPTIONS_TABLE = String(
-  process.env.SUPABASE_PUSH_SUBSCRIPTIONS_TABLE || 'PushSubscription'
-).trim();
-const SUPABASE_NOTIFICATION_SETTINGS_TABLE = String(
-  process.env.SUPABASE_NOTIFICATION_SETTINGS_TABLE || 'UserNotificationSettings'
-).trim();
-
 const TZ_OFFSET_HOURS = Number(process.env.REMINDER_TIMEZONE_OFFSET_HOURS || 0);
-const hasSupabaseConfig = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
-const hasFirebaseConfig = Boolean(FIREBASE_SERVICE_ACCOUNT_JSON || FIREBASE_SERVICE_ACCOUNT_FILE);
 
 const missing = [];
 if (!PUSH_PUBLIC_KEY) missing.push('WEB_PUSH_PUBLIC_KEY or VITE_WEB_PUSH_PUBLIC_KEY');
 if (!PUSH_PRIVATE_KEY) missing.push('WEB_PUSH_PRIVATE_KEY');
-if (!hasSupabaseConfig && !hasFirebaseConfig) {
-  missing.push('SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY or FIREBASE_SERVICE_ACCOUNT_JSON/FILE');
+if (!FIREBASE_SERVICE_ACCOUNT_JSON && !FIREBASE_SERVICE_ACCOUNT_FILE) {
+  missing.push('FIREBASE_SERVICE_ACCOUNT_JSON or FIREBASE_SERVICE_ACCOUNT_FILE');
 }
 
 if (missing.length > 0) {
@@ -100,97 +95,6 @@ const normalizeSubscription = (record) => {
     keys: {
       p256dh: record.p256dh,
       auth: record.auth,
-    },
-  };
-};
-
-const createSupabaseStore = () => {
-  const supabaseRequest = async ({ table, method = 'GET', query = {}, body = undefined }) => {
-    const url = new URL(`${SUPABASE_URL}/rest/v1/${encodeURIComponent(table)}`);
-
-    Object.entries(query || {}).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '') {
-        url.searchParams.set(key, String(value));
-      }
-    });
-
-    const res = await fetch(url.toString(), {
-      method,
-      headers: {
-        apikey: SUPABASE_SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        'Accept-Profile': SUPABASE_SCHEMA,
-        'Content-Profile': SUPABASE_SCHEMA,
-        'Content-Type': 'application/json',
-        Prefer: 'return=representation',
-      },
-      body: body ? JSON.stringify(body) : undefined,
-    });
-
-    if (!res.ok) {
-      const detail = await res.text().catch(() => '');
-      throw new Error(`Supabase ${method} ${table} ${res.status}: ${detail}`);
-    }
-
-    if (res.status === 204) {
-      return [];
-    }
-
-    return res.json().catch(() => []);
-  };
-
-  return {
-    kind: 'supabase',
-    loadDailyReminderUsers: async (timeSlot) => {
-      return supabaseRequest({
-        table: SUPABASE_NOTIFICATION_SETTINGS_TABLE,
-        query: {
-          select: '*',
-          enabled: 'eq.true',
-          time: `eq.${timeSlot}`,
-        },
-      });
-    },
-    loadEnabledSubscriptions: async ({ userEmail, userId }) => {
-      const query = {
-        select: '*',
-        enabled: 'eq.true',
-      };
-
-      if (userEmail) {
-        query.user_email = `eq.${String(userEmail).toLowerCase()}`;
-      }
-      if (userId) {
-        query.user_id = `eq.${userId}`;
-      }
-
-      return supabaseRequest({
-        table: SUPABASE_PUSH_SUBSCRIPTIONS_TABLE,
-        query,
-      });
-    },
-    markSubscriptionInvalid: async (recordId) => {
-      await supabaseRequest({
-        table: SUPABASE_PUSH_SUBSCRIPTIONS_TABLE,
-        method: 'PATCH',
-        query: { id: `eq.${recordId}` },
-        body: {
-          enabled: false,
-          unsubscribed_at: new Date().toISOString(),
-          updated_date: new Date().toISOString(),
-        },
-      });
-    },
-    markUserNotifiedToday: async (recordId, todayKey) => {
-      await supabaseRequest({
-        table: SUPABASE_NOTIFICATION_SETTINGS_TABLE,
-        method: 'PATCH',
-        query: { id: `eq.${recordId}` },
-        body: {
-          last_notified_date: todayKey,
-          updated_date: new Date().toISOString(),
-        },
-      });
     },
   };
 };
@@ -265,13 +169,13 @@ const createFirebaseStore = async () => {
   };
 };
 
-const store = hasSupabaseConfig ? createSupabaseStore() : await createFirebaseStore();
+const store = await createFirebaseStore();
 
 const todayKey = getTodayKey(TZ_OFFSET_HOURS);
 const timeSlot = getLocalTimeSlot(TZ_OFFSET_HOURS);
 const tasksUrl = `${PUSH_APP_BASE_URL}Tasks`;
 
-console.log(`[run-daily-reminders] store=${store.kind} date=${todayKey} slot=${timeSlot} tz_offset=${TZ_OFFSET_HOURS}h`);
+console.log(`[run-daily-reminders] date=${todayKey} slot=${timeSlot} tz_offset=${TZ_OFFSET_HOURS}h`);
 
 let usersToNotify = [];
 try {
