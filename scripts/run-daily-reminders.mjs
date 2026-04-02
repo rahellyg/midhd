@@ -24,6 +24,14 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
+// Global sender switch. Set to true to allow scheduled push delivery.
+const PUSH_NOTIFICATIONS_ENABLED = false;
+
+if (!PUSH_NOTIFICATIONS_ENABLED) {
+  console.log('[run-daily-reminders] Push notifications are globally disabled. Exiting without sending.');
+  process.exit(0);
+}
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 try {

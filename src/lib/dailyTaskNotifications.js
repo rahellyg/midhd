@@ -1,6 +1,7 @@
 import i18n from '@/i18n';
 
 const SETTINGS_KEY = 'midhd_daily_tasks_notifications_v1';
+const NOTIFICATIONS_GLOBALLY_DISABLED = false;
 
 const defaultSettings = {
   enabled: false,
@@ -25,6 +26,9 @@ const toMinutes = (timeValue) => {
 };
 
 export const isNotificationsSupported = () => {
+  if (NOTIFICATIONS_GLOBALLY_DISABLED) {
+    return false;
+  }
   return typeof window !== 'undefined' && 'Notification' in window;
 };
 
@@ -112,6 +116,9 @@ export const syncNotificationSettingsToCloud = async ({ user = null, settings = 
 };
 
 export const requestNotificationPermission = async () => {
+  if (NOTIFICATIONS_GLOBALLY_DISABLED) {
+    return 'unsupported';
+  }
   if (!isNotificationsSupported()) {
     return 'unsupported';
   }
@@ -138,6 +145,10 @@ const buildNotificationBody = (tasks) => {
 };
 
 export const sendTodayTasksNotification = async (pendingTasks) => {
+  if (NOTIFICATIONS_GLOBALLY_DISABLED) {
+    return { sent: false, reason: 'disabled' };
+  }
+
   if (!isNotificationsSupported()) {
     return { sent: false, reason: 'unsupported' };
   }

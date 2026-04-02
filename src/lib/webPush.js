@@ -1,6 +1,8 @@
 import { api } from '@/api/apiClient';
 
 const WEB_PUSH_ENTITY = 'PushSubscription';
+// Global frontend push switch. Set to true to allow browser push subscription.
+const PUSH_NOTIFICATIONS_ENABLED = false;
 
 const getPushPublicKey = () => String(import.meta.env.VITE_WEB_PUSH_PUBLIC_KEY || '').trim();
 
@@ -18,6 +20,10 @@ const isSecureForPush = () => {
 };
 
 export const isWebPushSupported = () => {
+  if (!PUSH_NOTIFICATIONS_ENABLED) {
+    return false;
+  }
+
   return (
     typeof window !== 'undefined' &&
     isSecureForPush() &&
@@ -29,6 +35,10 @@ export const isWebPushSupported = () => {
 
 export const hasWebPushConfig = () => Boolean(getPushPublicKey());
 
+/**
+ * @param {string} base64String
+ * @returns {Uint8Array}
+ */
 const urlBase64ToUint8Array = (base64String) => {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -69,6 +79,9 @@ const listSubscriptionRecords = async () => {
   }
 };
 
+/**
+ * @param {{ subscription: PushSubscription, user: { id?: string, email?: string } | null | undefined }} params
+ */
 const upsertSubscriptionRecord = async ({ subscription, user }) => {
   const json = subscription.toJSON();
   const endpoint = subscription.endpoint;
@@ -100,6 +113,9 @@ const upsertSubscriptionRecord = async ({ subscription, user }) => {
   return api.entities[WEB_PUSH_ENTITY].create(payload);
 };
 
+/**
+ * @param {{ endpoint: string }} params
+ */
 const markSubscriptionAsDisabled = async ({ endpoint }) => {
   if (!endpoint) {
     return;
@@ -117,7 +133,14 @@ const markSubscriptionAsDisabled = async ({ endpoint }) => {
   });
 };
 
+/**
+ * @param {{ user: { id?: string, email?: string } | null | undefined }} params
+ */
 export const subscribeCurrentDeviceToPush = async ({ user }) => {
+  if (!PUSH_NOTIFICATIONS_ENABLED) {
+    return { ok: false, reason: 'disabled' };
+  }
+
   if (!isWebPushSupported()) {
     return { ok: false, reason: 'unsupported' };
   }
@@ -141,7 +164,7 @@ export const subscribeCurrentDeviceToPush = async ({ user }) => {
     if (!subscription) {
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(publicKey),
+        applicationServerKey: /** @type {BufferSource} */ (urlBase64ToUint8Array(publicKey)),
       });
     }
 
