@@ -32,7 +32,7 @@ export default function UpdatePrompt() {
       className="fixed bottom-20 inset-x-0 z-50 flex justify-center px-4 pointer-events-none"
     >
       <div className="pointer-events-auto w-full max-w-sm rounded-2xl bg-indigo-600 text-white shadow-xl px-4 py-3 flex items-center gap-3">
-        <span className="text-sm flex-1 leading-snug">{t('update.ready')}</span>
+        <span className="text-sm flex-1 leading-snug">{t('update.ready')} (new)</span>
         <button
           type="button"
           onClick={handleUpdate}
