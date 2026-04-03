@@ -17,11 +17,6 @@
  *   PUSH_APP_BASE_URL
  *   FIREBASE_PROJECT_ID
  *   REMINDER_TIMEZONE_OFFSET_HOURS
- *   TEST_TARGET_USER_EMAIL
- *   TEST_TARGET_USER_ID
- *   TEST_TARGET_USER_REPEAT_PER_DAY
- *   TEST_TARGET_USER_IGNORE_TIME
- *   TEST_TARGET_USER_ALLOW_NO_TASKS
  */
 
 import fs from 'node:fs';
@@ -64,13 +59,20 @@ const FIREBASE_PROJECT_ID = String(
   process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || ''
 ).trim();
 
+// Single-user test configuration in code (used when corresponding env vars are not provided).
+const CODE_TEST_TARGET_USER_EMAIL = 'rahelly23@gmail.com';
+const CODE_TEST_TARGET_USER_ID = 'f75hyCblpxWTHutShs8C01s3m672';
+const CODE_TEST_TARGET_USER_REPEAT_PER_DAY = true;
+const CODE_TEST_TARGET_USER_IGNORE_TIME = false;
+const CODE_TEST_TARGET_USER_ALLOW_NO_TASKS = false;
+
 const TZ_OFFSET_HOURS = Number(process.env.REMINDER_TIMEZONE_OFFSET_HOURS || 0);
 const FORCE_ALL_USERS = String(process.env.FORCE_ALL_USERS || 'false').trim().toLowerCase() === 'true';
-const TEST_TARGET_USER_EMAIL = String(process.env.TEST_TARGET_USER_EMAIL || '').trim().toLowerCase();
-const TEST_TARGET_USER_ID = String(process.env.TEST_TARGET_USER_ID || '').trim();
-const TEST_TARGET_USER_REPEAT_PER_DAY = String(process.env.TEST_TARGET_USER_REPEAT_PER_DAY || 'false').trim().toLowerCase() === 'true';
-const TEST_TARGET_USER_IGNORE_TIME = String(process.env.TEST_TARGET_USER_IGNORE_TIME || 'false').trim().toLowerCase() === 'true';
-const TEST_TARGET_USER_ALLOW_NO_TASKS = String(process.env.TEST_TARGET_USER_ALLOW_NO_TASKS || 'false').trim().toLowerCase() === 'true';
+const TEST_TARGET_USER_EMAIL = String(CODE_TEST_TARGET_USER_EMAIL).trim().toLowerCase();
+const TEST_TARGET_USER_ID = String(CODE_TEST_TARGET_USER_ID).trim();
+const TEST_TARGET_USER_REPEAT_PER_DAY = Boolean(CODE_TEST_TARGET_USER_REPEAT_PER_DAY);
+const TEST_TARGET_USER_IGNORE_TIME = Boolean(CODE_TEST_TARGET_USER_IGNORE_TIME);
+const TEST_TARGET_USER_ALLOW_NO_TASKS = Boolean(CODE_TEST_TARGET_USER_ALLOW_NO_TASKS);
 const TEST_TARGET_MODE_ENABLED = Boolean(TEST_TARGET_USER_EMAIL || TEST_TARGET_USER_ID);
 
 const isTargetUser = (record) => {

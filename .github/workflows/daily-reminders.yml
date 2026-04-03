@@ -45,11 +45,6 @@ jobs:
           VITE_WEB_PUSH_PUBLIC_KEY: ${{ secrets.VITE_WEB_PUSH_PUBLIC_KEY }}
           WEB_PUSH_PRIVATE_KEY: ${{ secrets.WEB_PUSH_PRIVATE_KEY }}
           FORCE_ALL_USERS: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
-          TEST_TARGET_USER_EMAIL: ${{ secrets.TEST_TARGET_USER_EMAIL }}
-          TEST_TARGET_USER_ID: ${{ secrets.TEST_TARGET_USER_ID }}
-          TEST_TARGET_USER_REPEAT_PER_DAY: ${{ secrets.TEST_TARGET_USER_REPEAT_PER_DAY }}
-          TEST_TARGET_USER_IGNORE_TIME: ${{ secrets.TEST_TARGET_USER_IGNORE_TIME }}
-          TEST_TARGET_USER_ALLOW_NO_TASKS: ${{ secrets.TEST_TARGET_USER_ALLOW_NO_TASKS }}
           WEB_PUSH_SUBJECT:     ${{ secrets.WEB_PUSH_SUBJECT }}
           SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
