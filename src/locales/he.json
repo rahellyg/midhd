@@ -243,6 +243,11 @@
     "updateTask": "עדכן משימה",
     "saveTask": "שמור משימה"
   },
+  "update": {
+    "ready": "גרסא חדשה זמינה!",
+    "action": "עדכן עכשיו",
+    "dismiss": "אחר כך"
+  },
   "dailyTasksNotification": {
     "titleWithCount": "משימות להיום ({{count}})",
     "titleUpdate": "עדכון משימות להיום",

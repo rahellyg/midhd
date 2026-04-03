@@ -242,6 +242,11 @@
     "updateTask": "Update task",
     "saveTask": "Save task"
   },
+  "update": {
+    "ready": "A new version is available!",
+    "action": "Update now",
+    "dismiss": "Later"
+  },
   "dailyTasksNotification": {
     "titleWithCount": "Tasks for today ({{count}})",
     "titleUpdate": "Tasks update for today",

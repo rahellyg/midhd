@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import Login from '@/pages/Login';
 import DailyTaskNotifier from '@/components/tasks/DailyTaskNotifier';
+import UpdatePrompt from '@/components/UpdatePrompt';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -108,6 +109,7 @@ function App() {
           <AuthenticatedApp />
         </Router>
         <Toaster />
+        <UpdatePrompt />
       </QueryClientProvider>
     </AuthProvider>
   )

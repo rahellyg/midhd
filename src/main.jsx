@@ -4,7 +4,6 @@ import React from 'react';
 import './i18n';
 import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
-import { toast } from '@/components/ui/use-toast'
 
 const getBasePath = () => {
   const configuredBase = String(import.meta.env.BASE_URL || '/').trim();
@@ -54,37 +53,55 @@ const consumePendingPushRedirect = () => {
 consumePendingPushRedirect();
 
 if ('serviceWorker' in navigator) {
+  // Handle push URL navigation from service worker messages.
   navigator.serviceWorker.addEventListener('message', (event) => {
     if (event?.data?.type === 'OPEN_PUSH_URL' && event?.data?.url) {
       navigateWithinSpa(event.data.url);
     }
   });
 
+  // When the new SW takes control, reload once to use the fresh assets.
+  let reloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!reloading) {
+      reloading = true;
+      window.location.reload();
+    }
+  });
+
+  // Expose a function that pages/components can call to activate a waiting SW.
+  window.__activatePendingUpdate = () => {
+    if (window.__pendingUpdateSW) {
+      window.__pendingUpdateSW.postMessage({ type: 'SKIP_WAITING' });
+    }
+  };
+
   window.addEventListener('load', () => {
-    // Use /sw.js in dev, /midhd/sw.js in production
+    // Use /sw.js in dev, /midhd/sw.js in production.
     let swPath = '/sw.js';
     let swScope = '/';
     if (window.location.pathname.startsWith('/midhd/')) {
       swPath = '/midhd/sw.js';
       swScope = '/midhd/';
     }
-    navigator.serviceWorker.register(swPath, { scope: swScope }).then(registration => {
+
+    const notifyUpdateReady = (sw) => {
+      window.__pendingUpdateSW = sw;
+      window.dispatchEvent(new CustomEvent('swUpdateReady'));
+    };
+
+    navigator.serviceWorker.register(swPath, { scope: swScope }).then((registration) => {
+      // A SW is already waiting (e.g. tab was opened after a deploy landed).
+      if (registration.waiting && navigator.serviceWorker.controller) {
+        notifyUpdateReady(registration.waiting);
+      }
+
       registration.onupdatefound = () => {
-        const installingWorker = registration.installing;
-        installingWorker.onstatechange = () => {
-          if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            toast({
-              title: 'Update available',
-              description: 'A new version of the app is available.',
-              action: (
-                <button
-                  className="ml-4 px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700"
-                  onClick={() => window.location.reload()}
-                >
-                  Reload
-                </button>
-              ),
-            });
+        const installing = registration.installing;
+        if (!installing) return;
+        installing.onstatechange = () => {
+          if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+            notifyUpdateReady(installing);
           }
         };
       };

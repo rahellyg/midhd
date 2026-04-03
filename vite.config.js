@@ -30,7 +30,7 @@ export default defineConfig(({ command }) => {
     plugins: [
       react(),
       VitePWA({
-        registerType: 'autoUpdate',
+        registerType: 'prompt',
         injectRegister: false,
         manifestFilename: 'manifest.json',
         includeAssets: ['app-icon.svg', 'app-icon-192.png', 'app-icon-512.png', 'og-home.png', 'push-handler.js'],
@@ -64,7 +64,7 @@ export default defineConfig(({ command }) => {
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
           importScripts: ['push-handler.js'],
-          skipWaiting: true,
+          skipWaiting: false,
           clientsClaim: true,
           cleanupOutdatedCaches: true,
           runtimeCaching: []
