@@ -24,8 +24,10 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
-// Global sender switch. Set to true to allow scheduled push delivery.
-const PUSH_NOTIFICATIONS_ENABLED = false;
+// Global sender switch. Set PUSH_NOTIFICATIONS_ENABLED=false in env to stop delivery.
+const PUSH_NOTIFICATIONS_ENABLED = String(process.env.PUSH_NOTIFICATIONS_ENABLED || 'true')
+  .trim()
+  .toLowerCase() !== 'false';
 
 if (!PUSH_NOTIFICATIONS_ENABLED) {
   console.log('[run-daily-reminders] Push notifications are globally disabled. Exiting without sending.');
@@ -282,10 +284,25 @@ if (TEST_TARGET_MODE_ENABLED) {
 }
 
 let usersToNotify = [];
+const targetDebug = {
+  modeEnabled: TEST_TARGET_MODE_ENABLED,
+  targetEmail: TEST_TARGET_USER_EMAIL || null,
+  targetUserId: TEST_TARGET_USER_ID || null,
+  matchedEnabledSettings: false,
+  matchedNotifyWindow: false,
+  subscriptionsCount: 0,
+  pendingTasksCount: 0,
+  sentCount: 0,
+  failedCount: 0,
+};
 try {
   const allEnabled = await store.loadDailyReminderUsers(timeSlot);
   const skippedAlreadyNotified = [];
   const skippedOutsideWindow = [];
+
+  if (TEST_TARGET_MODE_ENABLED) {
+    targetDebug.matchedEnabledSettings = allEnabled.some((record) => isTargetUser(record));
+  }
 
   usersToNotify = allEnabled.filter((record) => {
     if (TEST_TARGET_MODE_ENABLED && !isTargetUser(record)) {
@@ -309,6 +326,10 @@ try {
 
     return true;
   });
+
+  if (TEST_TARGET_MODE_ENABLED) {
+    targetDebug.matchedNotifyWindow = usersToNotify.some((record) => isTargetUser(record));
+  }
 
   console.log(`[run-daily-reminders] enabled reminder docs: ${allEnabled.length}`);
   if (allEnabled.length > 0) {
@@ -364,6 +385,7 @@ console.log(
 
 for (const userRecord of usersToNotify) {
   const userLabel = userRecord.user_email || userRecord.user_id || 'unknown';
+  const targetUser = isTargetUser(userRecord);
   let pendingTasks = [];
   try {
     pendingTasks = await store.loadTodayPendingTasks({
@@ -376,6 +398,10 @@ for (const userRecord of usersToNotify) {
       `[run-daily-reminders] Could not load tasks for user ${userRecord.user_email || userRecord.user_id}:`,
       error.message
     );
+  }
+
+  if (targetUser) {
+    targetDebug.pendingTasksCount = pendingTasks.length;
   }
 
   const allowNoTasksForThisUser = isTargetUser(userRecord) && TEST_TARGET_USER_ALLOW_NO_TASKS;
@@ -417,6 +443,10 @@ for (const userRecord of usersToNotify) {
     );
   }
 
+  if (targetUser) {
+    targetDebug.subscriptionsCount = subscriptions.length;
+  }
+
   if (subscriptions.length === 0) {
     console.log(`[run-daily-reminders] skipped user=${userLabel} reason=no_subscriptions`);
   }
@@ -433,10 +463,16 @@ for (const userRecord of usersToNotify) {
       await webpush.sendNotification(subscription, payload);
       totalSent += 1;
       sentRecipients.push(userLabel);
+      if (targetUser) {
+        targetDebug.sentCount += 1;
+      }
       const sentAt = new Date().toISOString();
       console.log(`  ✓ sent_at=${sentAt} user=${userLabel} endpoint=${subscription.endpoint.slice(0, 60)}…`);
     } catch (error) {
       totalFailed += 1;
+      if (targetUser) {
+        targetDebug.failedCount += 1;
+      }
       const statusCode = Number(error?.statusCode || 0);
       failedRecipients.push(`${userLabel} (${statusCode || 'unknown'})`);
       console.warn(`  ✗ failed (${statusCode}): ${error.message}`);
@@ -465,6 +501,9 @@ for (const userRecord of usersToNotify) {
 
 console.log(`[run-daily-reminders] Done. sent=${totalSent} failed=${totalFailed} no_tasks=${totalNoTasks}`);
 console.log(`[run-daily-reminders] finished_at=${new Date().toISOString()}`);
+if (TEST_TARGET_MODE_ENABLED) {
+  console.log('[run-daily-reminders] target debug summary:', targetDebug);
+}
 if (sentRecipients.length > 0) {
   console.log('[run-daily-reminders] sent recipients:', [...new Set(sentRecipients)]);
 }
