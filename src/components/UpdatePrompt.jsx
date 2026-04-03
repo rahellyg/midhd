@@ -6,6 +6,11 @@ export default function UpdatePrompt() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
+    const win = /** @type {any} */ (window);
+    if (win.__pendingUpdateSW) {
+      setVisible(true);
+    }
+
     const handleUpdateReady = () => setVisible(true);
     window.addEventListener('swUpdateReady', handleUpdateReady);
     return () => window.removeEventListener('swUpdateReady', handleUpdateReady);
