@@ -1,11 +1,15 @@
 name: Daily Push Reminders
 
 on:
-  # Runs every 15 minutes — GitHub Actions cron runs in UTC.
-  # Adjust REMINDER_TIMEZONE_OFFSET_HOURS in the env section below
-  # if your users' reminder times are stored in a non-UTC timezone.
+  # Fixed daily slots (UTC). Israel is UTC+3, so:
+  # 09:00 IL = 06:00 UTC | 12:00 IL = 09:00 UTC | 15:00 IL = 12:00 UTC
+  # 18:00 IL = 15:00 UTC | 21:00 IL = 18:00 UTC
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '0 6 * * *'
+    - cron: '0 9 * * *'
+    - cron: '0 12 * * *'
+    - cron: '0 15 * * *'
+    - cron: '0 18 * * *'
   # Allow manual trigger from the Actions tab for testing
   workflow_dispatch:
 

@@ -27,6 +27,32 @@ const filterKeys = ["all", "todo", "in_progress", "done"];
 const priorityKeys = ["all", "high", "medium", "low"];
 const taskTypeKeys = ["all", "work", "home", "personal_development", "other"];
 
+const REMINDER_SLOTS = ["09:00", "12:00", "15:00", "18:00", "21:00"];
+const DEFAULT_REMINDER_SLOT = "09:00";
+
+const snapToReminderSlot = (timeValue) => {
+  if (REMINDER_SLOTS.includes(timeValue)) {
+    return timeValue;
+  }
+  // pick nearest allowed slot
+  const [rawH, rawM] = String(timeValue || DEFAULT_REMINDER_SLOT).split(":").map(Number);
+  if (Number.isNaN(rawH)) {
+    return DEFAULT_REMINDER_SLOT;
+  }
+  const minutes = rawH * 60 + (rawM || 0);
+  let best = REMINDER_SLOTS[0];
+  let bestDiff = Infinity;
+  for (const slot of REMINDER_SLOTS) {
+    const [sh, sm] = slot.split(":").map(Number);
+    const diff = Math.abs(minutes - (sh * 60 + sm));
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      best = slot;
+    }
+  }
+  return best;
+};
+
 const normalizeToQuarterHour = (timeValue) => {
   const [rawHours, rawMinutes] = String(timeValue || "09:00").split(":").map(Number);
   if (Number.isNaN(rawHours) || Number.isNaN(rawMinutes)) {
@@ -62,7 +88,7 @@ export default function Tasks() {
   const [notificationsSupported, setNotificationsSupported] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState("default");
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const [notificationTime, setNotificationTime] = useState("09:00");
+  const [notificationTime, setNotificationTime] = useState(DEFAULT_REMINDER_SLOT);
   const [notificationMessage, setNotificationMessage] = useState("");
 
   const load = async () => {
@@ -85,7 +111,7 @@ export default function Tasks() {
 
     const settings = getNotificationSettings();
     setNotificationsEnabled(Boolean(settings.enabled));
-    setNotificationTime(normalizeToQuarterHour(settings.time || "09:00"));
+    setNotificationTime(snapToReminderSlot(settings.time || DEFAULT_REMINDER_SLOT));
     setNotificationPermission(getNotificationPermission());
   }, []);
 
@@ -117,7 +143,7 @@ export default function Tasks() {
       }
     }
 
-    const normalizedTime = normalizeToQuarterHour(notificationTime);
+    const normalizedTime = snapToReminderSlot(notificationTime);
     setNotificationsEnabled(true);
     setNotificationTime(normalizedTime);
     const updated = updateNotificationSettings({ enabled: true, time: normalizedTime });
@@ -140,7 +166,7 @@ export default function Tasks() {
   };
 
   const handleTimeChange = (event) => {
-    const nextTime = normalizeToQuarterHour(event.target.value);
+    const nextTime = snapToReminderSlot(event.target.value);
     setNotificationTime(nextTime);
     const updated = updateNotificationSettings({ time: nextTime });
     void syncNotificationSettingsToCloud({ user, settings: updated });
@@ -268,13 +294,17 @@ export default function Tasks() {
         <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-end">
           <label className="text-xs text-slate-500">
             {t("tasks.reminderTimeLabel")}
-            <input
-              type="time"
+            <select
               value={notificationTime}
               onChange={handleTimeChange}
-              step="900"
               className="mt-1 w-full bg-white/80 rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-            />
+            >
+              {REMINDER_SLOTS.map((slot) => (
+                <option key={slot} value={slot}>
+                  {t(`tasks.reminderSlot_${slot.replace(":", "_")}`, { defaultValue: slot })}
+                </option>
+              ))}
+            </select>
           </label>
 
           <button
