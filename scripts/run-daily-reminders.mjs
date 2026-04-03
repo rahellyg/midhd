@@ -17,6 +17,11 @@
  *   PUSH_APP_BASE_URL
  *   FIREBASE_PROJECT_ID
  *   REMINDER_TIMEZONE_OFFSET_HOURS
+ *   TEST_TARGET_USER_EMAIL
+ *   TEST_TARGET_USER_ID
+ *   TEST_TARGET_USER_REPEAT_PER_DAY
+ *   TEST_TARGET_USER_IGNORE_TIME
+ *   TEST_TARGET_USER_ALLOW_NO_TASKS
  */
 
 import fs from 'node:fs';
@@ -61,6 +66,24 @@ const FIREBASE_PROJECT_ID = String(
 
 const TZ_OFFSET_HOURS = Number(process.env.REMINDER_TIMEZONE_OFFSET_HOURS || 0);
 const FORCE_ALL_USERS = String(process.env.FORCE_ALL_USERS || 'false').trim().toLowerCase() === 'true';
+const TEST_TARGET_USER_EMAIL = String(process.env.TEST_TARGET_USER_EMAIL || '').trim().toLowerCase();
+const TEST_TARGET_USER_ID = String(process.env.TEST_TARGET_USER_ID || '').trim();
+const TEST_TARGET_USER_REPEAT_PER_DAY = String(process.env.TEST_TARGET_USER_REPEAT_PER_DAY || 'false').trim().toLowerCase() === 'true';
+const TEST_TARGET_USER_IGNORE_TIME = String(process.env.TEST_TARGET_USER_IGNORE_TIME || 'false').trim().toLowerCase() === 'true';
+const TEST_TARGET_USER_ALLOW_NO_TASKS = String(process.env.TEST_TARGET_USER_ALLOW_NO_TASKS || 'false').trim().toLowerCase() === 'true';
+const TEST_TARGET_MODE_ENABLED = Boolean(TEST_TARGET_USER_EMAIL || TEST_TARGET_USER_ID);
+
+const isTargetUser = (record) => {
+  if (!TEST_TARGET_MODE_ENABLED) {
+    return false;
+  }
+
+  const emailMatches =
+    TEST_TARGET_USER_EMAIL && String(record?.user_email || '').toLowerCase() === TEST_TARGET_USER_EMAIL;
+  const idMatches = TEST_TARGET_USER_ID && String(record?.user_id || '') === TEST_TARGET_USER_ID;
+
+  return Boolean(emailMatches || idMatches);
+};
 
 const missing = [];
 if (!PUSH_PUBLIC_KEY) missing.push('WEB_PUSH_PUBLIC_KEY or VITE_WEB_PUSH_PUBLIC_KEY');
@@ -233,8 +256,28 @@ const tasksUrl = `${PUSH_APP_BASE_URL}Tasks`;
 const runStartedAt = new Date().toISOString();
 
 console.log(`[run-daily-reminders] date=${todayKey} slot=${timeSlot} tz_offset=${TZ_OFFSET_HOURS}h`);
-console.log(`[run-daily-reminders] mode=${FORCE_ALL_USERS ? 'manual-force-all' : 'daily'}`);
+console.log(
+  `[run-daily-reminders] mode=${
+    FORCE_ALL_USERS
+      ? 'manual-force-all'
+      : TEST_TARGET_MODE_ENABLED
+        ? 'single-user-test'
+        : 'daily'
+  }`
+);
 console.log(`[run-daily-reminders] started_at=${runStartedAt}`);
+if (TEST_TARGET_MODE_ENABLED) {
+  console.log(
+    '[run-daily-reminders] single-user-test settings:',
+    {
+      target_email: TEST_TARGET_USER_EMAIL || null,
+      target_user_id: TEST_TARGET_USER_ID || null,
+      repeat_per_day: TEST_TARGET_USER_REPEAT_PER_DAY,
+      ignore_time: TEST_TARGET_USER_IGNORE_TIME,
+      allow_no_tasks: TEST_TARGET_USER_ALLOW_NO_TASKS,
+    }
+  );
+}
 
 let usersToNotify = [];
 try {
@@ -243,12 +286,21 @@ try {
   const skippedOutsideWindow = [];
 
   usersToNotify = allEnabled.filter((record) => {
-    if (!FORCE_ALL_USERS && record.last_notified_date === todayKey) {
+    if (TEST_TARGET_MODE_ENABLED && !isTargetUser(record)) {
+      return false;
+    }
+
+    const skipAlreadyNotified =
+      !FORCE_ALL_USERS && (!isTargetUser(record) || !TEST_TARGET_USER_REPEAT_PER_DAY);
+    const enforceReminderTime =
+      !FORCE_ALL_USERS && (!isTargetUser(record) || !TEST_TARGET_USER_IGNORE_TIME);
+
+    if (skipAlreadyNotified && record.last_notified_date === todayKey) {
       skippedAlreadyNotified.push(record);
       return false;
     }
 
-    if (!FORCE_ALL_USERS && !isDueNowOrEarlierToday(record.time, timeSlot)) {
+    if (enforceReminderTime && !isDueNowOrEarlierToday(record.time, timeSlot)) {
       skippedOutsideWindow.push(record);
       return false;
     }
@@ -269,6 +321,9 @@ try {
     );
   }
   console.log(`[run-daily-reminders] users matched for slot: ${usersToNotify.length}`);
+  if (TEST_TARGET_MODE_ENABLED && usersToNotify.length === 0) {
+    console.log('[run-daily-reminders] target user not matched in enabled reminder settings.');
+  }
   if (!FORCE_ALL_USERS && skippedAlreadyNotified.length > 0) {
     console.log(
       `[run-daily-reminders] skipped already notified today: ${skippedAlreadyNotified.length}`
@@ -321,7 +376,8 @@ for (const userRecord of usersToNotify) {
     );
   }
 
-  if (!FORCE_ALL_USERS && pendingTasks.length === 0) {
+  const allowNoTasksForThisUser = isTargetUser(userRecord) && TEST_TARGET_USER_ALLOW_NO_TASKS;
+  if (!FORCE_ALL_USERS && !allowNoTasksForThisUser && pendingTasks.length === 0) {
     totalNoTasks += 1;
     skippedNoTaskRecipients.push(userLabel);
     console.log(`[run-daily-reminders] skipped user=${userLabel} reason=no_tasks`);
@@ -393,7 +449,10 @@ for (const userRecord of usersToNotify) {
     }
   }
 
-  if (!FORCE_ALL_USERS) {
+  const shouldMarkNotifiedToday =
+    !FORCE_ALL_USERS && !(isTargetUser(userRecord) && TEST_TARGET_USER_REPEAT_PER_DAY);
+
+  if (shouldMarkNotifiedToday) {
     try {
       await store.markUserNotifiedToday(userRecord.id, todayKey);
     } catch (error) {

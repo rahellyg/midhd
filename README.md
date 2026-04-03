@@ -179,6 +179,36 @@ Yes, but it depends on scenario:
 - Multiple devices/browsers: one run can send multiple pushes for the same user (one per active subscription endpoint).
 - Manual workflow dispatch (`workflow_dispatch`): sets `FORCE_ALL_USERS=true`, which bypasses daily/time/task filters and can resend on the same day if triggered multiple times.
 
+Single-user repeated test mode (recommended for QA):
+
+- Set exactly one target identifier:
+	- `TEST_TARGET_USER_EMAIL`, or
+	- `TEST_TARGET_USER_ID`
+- Then enable the behavior you need:
+	- `TEST_TARGET_USER_REPEAT_PER_DAY=true` to bypass the one-per-day guard for the target user.
+	- `TEST_TARGET_USER_IGNORE_TIME=true` to bypass reminder-time checks for the target user.
+	- `TEST_TARGET_USER_ALLOW_NO_TASKS=true` to still send even when the target user has no pending tasks.
+
+In this mode, only the target user is considered by the sender. All other users are skipped.
+
+Example (local run):
+
+```bash
+TEST_TARGET_USER_EMAIL=tester@example.com \
+TEST_TARGET_USER_REPEAT_PER_DAY=true \
+TEST_TARGET_USER_IGNORE_TIME=true \
+npm run push:send
+```
+
+Example (GitHub Actions):
+
+- Add these repository secrets and run the workflow on schedule or manually:
+	- `TEST_TARGET_USER_EMAIL`
+	- `TEST_TARGET_USER_REPEAT_PER_DAY` = `true`
+	- `TEST_TARGET_USER_IGNORE_TIME` = `true`
+- Optional: `TEST_TARGET_USER_ALLOW_NO_TASKS` = `true`
+- Remove/clear these secrets when testing is complete.
+
 #### 4) What checks happen before sending push?
 
 Config/environment checks at startup:
