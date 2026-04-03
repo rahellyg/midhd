@@ -14,7 +14,7 @@ const formatLocalClock = (language) => new Intl.DateTimeFormat(language || undef
   minute: "2-digit",
   second: "2-digit",
 }).format(new Date());
-55
+
 const resolveVersionFeatureText = (feature, language) => {
   if (typeof feature === "string") {
     return feature;
@@ -80,9 +80,14 @@ export default function Dashboard() {
     setIsStandalone(Boolean(standalone));
     setShowIosInstallHint(Boolean(isIos && !standalone));
 
-    const handleBeforeInstallPrompt = (event) => {
-      event.preventDefault();
-      setInstallPromptEvent(event);
+    const win = /** @type {any} */ (window);
+    const syncInstallPromptFromGlobal = () => {
+      setInstallPromptEvent(win.__pwaInstallPromptEvent || null);
+    };
+    syncInstallPromptFromGlobal();
+
+    const handleInstallReady = () => {
+      syncInstallPromptFromGlobal();
     };
 
     const handleAppInstalled = () => {
@@ -91,12 +96,14 @@ export default function Dashboard() {
       setShowIosInstallHint(false);
     };
 
-    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("pwaInstallReady", handleInstallReady);
     window.addEventListener("appinstalled", handleAppInstalled);
+    window.addEventListener("pwaAppInstalled", handleAppInstalled);
 
     return () => {
-      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("pwaInstallReady", handleInstallReady);
       window.removeEventListener("appinstalled", handleAppInstalled);
+      window.removeEventListener("pwaAppInstalled", handleAppInstalled);
     };
   }, []);
 
@@ -121,10 +128,14 @@ export default function Dashboard() {
   }, [user?.full_name, user?.name, user?.email, user?.phone]);
 
   const handleInstallApp = async () => {
-    if (installPromptEvent) {
-      installPromptEvent.prompt();
-      const choiceResult = await installPromptEvent.userChoice;
+    const win = /** @type {any} */ (window);
+    const pendingPrompt = installPromptEvent || win.__pwaInstallPromptEvent;
+
+    if (pendingPrompt) {
+      pendingPrompt.prompt();
+      const choiceResult = await pendingPrompt.userChoice;
       if (choiceResult?.outcome === "accepted") {
+        win.__pwaInstallPromptEvent = null;
         setInstallPromptEvent(null);
       }
       return;

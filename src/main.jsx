@@ -52,6 +52,19 @@ const consumePendingPushRedirect = () => {
 
 consumePendingPushRedirect();
 
+// Capture the PWA install prompt as early as possible — before React mounts.
+// useEffect in components runs after the first render and can miss this event.
+/** @type {any} */ (window).__pwaInstallPromptEvent = null;
+window.addEventListener('beforeinstallprompt', (event) => {
+  event.preventDefault();
+  /** @type {any} */ (window).__pwaInstallPromptEvent = event;
+  window.dispatchEvent(new CustomEvent('pwaInstallReady'));
+});
+window.addEventListener('appinstalled', () => {
+  /** @type {any} */ (window).__pwaInstallPromptEvent = null;
+  window.dispatchEvent(new CustomEvent('pwaAppInstalled'));
+});
+
 if ('serviceWorker' in navigator) {
   // Handle push URL navigation from service worker messages.
   navigator.serviceWorker.addEventListener('message', (event) => {
