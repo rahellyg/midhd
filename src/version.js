@@ -1,5 +1,5 @@
 // This file is auto-generated in build to expose the app version from package.json
-export const APP_VERSION = "1.0.06";
+export const APP_VERSION = String(import.meta.env.VITE_APP_VERSION || "1.0.06").trim();
 export const APP_VERSION_FEATURES = [
 	{
 		en: "Daily task reminders via web push notifications",

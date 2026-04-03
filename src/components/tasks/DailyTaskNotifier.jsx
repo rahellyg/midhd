@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { api } from '@/api/apiClient';
 import { useAuth } from '@/lib/AuthContext';
+import { sendPushSentAlertEmail } from '@/lib/contactEmail';
 import {
   getNotificationPermission,
   getNotificationSettings,
@@ -43,6 +44,17 @@ export default function DailyTaskNotifier({ isAuthenticated }) {
         if (result.sent) {
           const syncedSettings = markNotifiedToday();
           syncNotificationSettingsToCloud({ user, settings: syncedSettings });
+
+          try {
+            await sendPushSentAlertEmail({
+              userEmail: user?.email,
+              userName: user?.displayName || user?.name,
+              pendingCount: pendingToday.length,
+              source: 'daily_task_notifier',
+            });
+          } catch {
+            // Email alert is non-blocking and should not affect notifications.
+          }
         }
       } catch {
         // Silent by design: reminders should not break app flow.

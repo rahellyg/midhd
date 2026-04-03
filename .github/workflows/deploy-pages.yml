@@ -28,6 +28,7 @@ jobs:
 
       - name: Generate env file from GitHub Secrets
         env:
+          APP_VERSION_BASE: ${{ vars.APP_VERSION_BASE || '1.0' }}
           VITE_APP_ID: ${{ secrets.VITE_APP_ID }}
           VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
           VITE_FUNCTIONS_VERSION: ${{ secrets.VITE_FUNCTIONS_VERSION }}
@@ -45,6 +46,8 @@ jobs:
           VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
         run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
+          BUILD_VERSION="${APP_VERSION_BASE}.${GITHUB_RUN_NUMBER}+${SHORT_SHA}"
           echo "VITE_APP_ID=${VITE_APP_ID}" > .env.production
           echo "VITE_API_BASE_URL=${VITE_API_BASE_URL}" >> .env.production
           echo "VITE_FUNCTIONS_VERSION=${VITE_FUNCTIONS_VERSION}" >> .env.production
@@ -61,6 +64,7 @@ jobs:
           echo "VITE_FIREBASE_STORAGE_BUCKET=${VITE_FIREBASE_STORAGE_BUCKET}" >> .env.production
           echo "VITE_FIREBASE_MESSAGING_SENDER_ID=${VITE_FIREBASE_MESSAGING_SENDER_ID}" >> .env.production
           echo "VITE_FIREBASE_APP_ID=${VITE_FIREBASE_APP_ID}" >> .env.production
+          echo "VITE_APP_VERSION=${BUILD_VERSION}" >> .env.production
 
       - name: Build
         run: npm run build

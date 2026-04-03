@@ -125,4 +125,44 @@ export const sendRegistrationAlertEmail = async ({ userEmail, userName, provider
   return { ok: true };
 };
 
+export const sendPushSentAlertEmail = async ({ userEmail, userName, pendingCount, source = 'daily_task_notifier' } = {}) => {
+  if (!hasValidConfig()) {
+    throw new Error('missing_email_config');
+  }
+
+  const payload = {
+    service_id: requiredConfig.serviceId,
+    template_id: requiredConfig.templateId,
+    user_id: requiredConfig.publicKey,
+    template_params: {
+      to_email: CONTACT_RECEIVER_EMAIL,
+      from_name: 'midhd push alert',
+      from_email: 'noreply@midhd.app',
+      message: [
+        'Push notification sent successfully.',
+        `Source: ${source}`,
+        `User email: ${userEmail || 'unknown'}`,
+        `User name: ${userName || 'unknown'}`,
+        `Pending tasks count: ${Number.isFinite(pendingCount) ? pendingCount : 'unknown'}`,
+      ].join('\n'),
+      app_name: 'midhd',
+    },
+  };
+
+  const response = await fetch(EMAILJS_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const details = await response.text();
+    throw new Error(details || 'email_send_failed');
+  }
+
+  return { ok: true };
+};
+
 export const getContactReceiverEmail = () => CONTACT_RECEIVER_EMAIL;
