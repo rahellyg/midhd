@@ -4,6 +4,7 @@ import { MessageCircleQuestion, Send, Users, MessageSquareReply } from "lucide-r
 import BottomNav from "@/components/layout/BottomNav";
 import { useAuth } from "@/lib/AuthContext";
 import { api } from "@/api/apiClient";
+import LinkifiedText from "@/components/ui/LinkifiedText";
 
 const FORUM_REPORTS_STORAGE_KEY = "midhd_forum_reports_v1";
 const FORUM_BLOCKED_USERS_STORAGE_KEY = "midhd_forum_blocked_users_v1";
@@ -365,7 +366,7 @@ export default function Forum() {
           {sortedThreads.map((thread) => (
             <article key={thread.id} className="glass rounded-3xl p-5">
               <div className="flex items-start justify-between gap-3 mb-2">
-                <p className="font-semibold text-slate-800 leading-7">{thread.question}</p>
+                <p className="font-semibold text-slate-800 leading-7"><LinkifiedText text={thread.question} /></p>
               </div>
               <p className="text-xs text-slate-500 mb-4">
                 {t("forum.writtenBy", { author: thread.author })} • {formatDate(thread.createdAt)}
@@ -380,7 +381,7 @@ export default function Forum() {
                       <span>•</span>
                       <span>{formatDate(answer.createdAt)}</span>
                     </div>
-                    <p className="text-sm text-slate-700 leading-6">{answer.text}</p>
+                    <p className="text-sm text-slate-700 leading-6"><LinkifiedText text={answer.text} /></p>
                   </div>
                 ))}
               </div>

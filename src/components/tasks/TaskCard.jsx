@@ -2,6 +2,7 @@ import { CheckCircle2, Circle, Clock, ChevronDown, ChevronUp, Pencil, Trash2 } f
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "@/api/apiClient";
+import LinkifiedText from "@/components/ui/LinkifiedText";
 
 const priorityConfig = {
   high: { label: "גבוהה", color: "bg-red-100 text-red-600", dot: "bg-red-500" },
@@ -64,7 +65,9 @@ export default function TaskCard({ task, onUpdate, onDelete, onEdit }) {
             {task.title}
           </p>
           {task.description && (
-            <p className="text-sm text-slate-500 mt-0.5 line-clamp-2">{task.description}</p>
+            <p className="text-sm text-slate-500 mt-0.5 line-clamp-2">
+              <LinkifiedText text={task.description} />
+            </p>
           )}
           <div className="flex flex-wrap items-center gap-2 mt-2">
             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${priority.color}`}>
