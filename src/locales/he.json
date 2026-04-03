@@ -214,6 +214,7 @@
     "notificationsNotSupported": "Web Push לא נתמך בדפדפן או במכשיר הזה.",
     "notificationsPermissionRequired": "נדרש לאשר התראות בדפדפן כדי לקבל תזכורות.",
     "notificationsPushConfigMissing": "ה־Push עדיין לא מוגדר. יש להגדיר VITE_WEB_PUSH_PUBLIC_KEY.",
+    "notificationsPushRestrictedUser": "התראות Push פעילות רק עבור rahelly23@gmail.com.",
     "notificationsPushSubscribeFailed": "לא ניתן לרשום את המכשיר לקבלת התראות Push.",
     "notificationsPushUnsubscribeFailed": "לא ניתן להסיר את המכשיר מרשימת התראות Push.",
     "notificationsEnabled": "התזכורת היומית הופעלה בהצלחה.",

@@ -213,6 +213,7 @@
     "notificationsNotSupported": "Web Push is not supported on this browser/device.",
     "notificationsPermissionRequired": "Please allow notifications in the browser to get reminders.",
     "notificationsPushConfigMissing": "Push is not configured yet. Set VITE_WEB_PUSH_PUBLIC_KEY.",
+    "notificationsPushRestrictedUser": "Push is enabled only for rahelly23@gmail.com.",
     "notificationsPushSubscribeFailed": "Could not subscribe this device to push notifications.",
     "notificationsPushUnsubscribeFailed": "Could not unsubscribe this device from push notifications.",
     "notificationsEnabled": "Daily reminder enabled successfully.",

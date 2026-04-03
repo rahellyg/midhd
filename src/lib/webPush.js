@@ -2,7 +2,10 @@ import { api } from '@/api/apiClient';
 
 const WEB_PUSH_ENTITY = 'PushSubscription';
 // Global frontend push switch. Set to true to allow browser push subscription.
-const PUSH_NOTIFICATIONS_ENABLED = false;
+const PUSH_NOTIFICATIONS_ENABLED = true;
+const PUSH_ALLOWED_EMAILS = ['rahelly23@gmail.com'];
+
+const normalizeEmail = (value) => String(value || '').trim().toLowerCase();
 
 const getPushPublicKey = () => String(import.meta.env.VITE_WEB_PUSH_PUBLIC_KEY || '').trim();
 
@@ -34,6 +37,18 @@ export const isWebPushSupported = () => {
 };
 
 export const hasWebPushConfig = () => Boolean(getPushPublicKey());
+
+/**
+ * @param {{ email?: string } | null | undefined} user
+ */
+export const canUserEnablePush = (user) => {
+  const userEmail = normalizeEmail(user?.email);
+  if (!userEmail) {
+    return false;
+  }
+
+  return PUSH_ALLOWED_EMAILS.includes(userEmail);
+};
 
 /**
  * @param {string} base64String
@@ -139,6 +154,10 @@ const markSubscriptionAsDisabled = async ({ endpoint }) => {
 export const subscribeCurrentDeviceToPush = async ({ user }) => {
   if (!PUSH_NOTIFICATIONS_ENABLED) {
     return { ok: false, reason: 'disabled' };
+  }
+
+  if (!canUserEnablePush(user)) {
+    return { ok: false, reason: 'restricted_user' };
   }
 
   if (!isWebPushSupported()) {

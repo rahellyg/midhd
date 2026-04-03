@@ -19,7 +19,6 @@ import {
 } from "@/lib/dailyTaskNotifications";
 import {
   hasWebPushConfig,
-  isWebPushSupported,
   subscribeCurrentDeviceToPush,
   unsubscribeCurrentDeviceFromPush,
 } from "@/lib/webPush";
@@ -78,7 +77,7 @@ export default function Tasks() {
   useEffect(() => { load(); }, []);
 
   useEffect(() => {
-    const supported = isNotificationsSupported() && isWebPushSupported();
+    const supported = isNotificationsSupported();
     setNotificationsSupported(supported);
     if (!supported) {
       return;
@@ -111,8 +110,10 @@ export default function Tasks() {
     if (hasWebPushConfig()) {
       const subscriptionResult = await subscribeCurrentDeviceToPush({ user });
       if (!subscriptionResult.ok) {
-        // Subscription failed but we still enable local (in-app) notifications.
-        setNotificationMessage(t("tasks.notificationsPushSubscribeFailed"));
+        if (subscriptionResult.reason !== "restricted_user") {
+          // Subscription failed but we still enable local (in-app) notifications.
+          setNotificationMessage(t("tasks.notificationsPushSubscribeFailed"));
+        }
       }
     }
 
